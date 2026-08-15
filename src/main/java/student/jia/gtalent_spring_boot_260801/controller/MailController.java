@@ -1,8 +1,11 @@
 package student.jia.gtalent_spring_boot_260801.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+import student.jia.gtalent_spring_boot_260801.request.MailRequest;
 import student.jia.gtalent_spring_boot_260801.service.MailService;
 
 @RestController
@@ -13,10 +16,18 @@ public class MailController {
         this.mailService = mailService;
     }
 
-    @GetMapping("/mail/test")
-    public String sendEmail() {
-        mailService.sendEmail("leonardo071123@gmail.com", "Test Java Gmail", "Jia Test Message");
-        return "Email sent successfully!";
+    /**
+     * 寄送純文字電子郵件。
+     *
+     * @param request 從 JSON request body 轉換而來的資料
+     * @return 寄送成功時回傳的訊息
+     */
+    @PostMapping("/mail/send")
+    public String sendEmail(@Valid @RequestBody MailRequest request) {
+
+        // 將 JSON 的 to、subject、text 交給 Service 實際寄信。
+        mailService.sendEmail(request.getTo(), request.getSubject(), request.getText());
+        return "郵件發送成功!";
     }
 
 

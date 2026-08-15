@@ -29,6 +29,11 @@ public final class ResponseMessages {
     public static final String BOOK_NOT_FOUND           = "40001"; // 找不到書籍。
     
 
+    public static final String MAIL_TO_REQUIRED        = "10004";
+    public static final String MAIL_TO_INVALID         = "10005";
+    public static final String MAIL_SUBJECT_REQUIRED   = "10006";
+    public static final String MAIL_TEXT_REQUIRED      = "10007";
+
     private static final Map<String, String> ZH_TW_MESSAGES = createZhTwMessages();
 
     private static Map<String, String> createZhTwMessages() {
@@ -46,6 +51,11 @@ public final class ResponseMessages {
         messages.put(NOT_FOUND,             "找不到 API");
         messages.put(BOOK_NOT_FOUND,        "找不到書籍");
         messages.put(RESOURCE_NOT_FOUND,    "資料不存在");
+        messages.put(MAIL_TO_REQUIRED,      "收件人不可空白");
+        messages.put(MAIL_TO_INVALID,       "收件人必須是有效的 Email 地址");
+        messages.put(MAIL_SUBJECT_REQUIRED, "信件主旨不可空白");
+        messages.put(MAIL_TEXT_REQUIRED,    "信件內容不可空白");
+
         return messages;
     }
 
