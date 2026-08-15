@@ -1,7 +1,7 @@
 CREATE DATABASE project26_v1
     DEFAULT CHARACTER SET = 'utf8mb4';
 
-CREATE DATABASE project26_v1_test
+CREATE DATABASE project26_v1_tes
     DEFAULT CHARACTER SET = 'utf8mb4';
 
 CREATE USER 'project26_v1'@'%' IDENTIFIED BY 'ssp6987584';
