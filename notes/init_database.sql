@@ -1,10 +1,10 @@
 CREATE DATABASE project26_v1
     DEFAULT CHARACTER SET = 'utf8mb4';
 
-CREATE DATABASE project26_v1_tes
+CREATE DATABASE project26_v1_test
     DEFAULT CHARACTER SET = 'utf8mb4';
 
-CREATE USER 'project26_v1'@'%' IDENTIFIED BY 'ssp6987584';
+CREATE USER 'project26_v1'@'%' IDENTIFIED BY '你的密碼';
 -- Grant select privilege to all databases;
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX
     ON project26_v1.*

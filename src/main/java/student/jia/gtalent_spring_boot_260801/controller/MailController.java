@@ -30,7 +30,7 @@ public class MailController {
         // @Valid 會先確認欄位不是空白、收件人格式正確；驗證通過才會執行到這裡。
         // Controller 不直接處理 Gmail 細節，交給 MailService，方便維護與重複使用。
         mailService.sendEmail(request.getTo(), request.getSubject(), request.getText());
-        return "信件寄送成功";
+        return "信件寄送成功!";
     }
 
     // 練習 1：可嘗試改成從 @RequestParam 取得 to、subject、text。
