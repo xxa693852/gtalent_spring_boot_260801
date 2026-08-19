@@ -5,6 +5,7 @@ import student.jia.gtalent_spring_boot_260801.response.ApiResponse;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.MailException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,6 +17,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 import java.util.TreeMap;
+
 // 統一處理 controller 層拋出的例外，讓 API 錯誤回應格式一致。
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -91,5 +93,23 @@ public class GlobalExceptionHandler {
         return new ApiResponse(message, errors);
     }
 
+
+    // 處理寄信失敗，例如 SMTP 設定錯誤、帳密錯誤或 mail server 連線失敗。
+    @ExceptionHandler(MailException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse handleMailException(MailException exception) {
+        return new ApiResponse(ResponseMessages.getMessage(ResponseMessages.MAIL_SEND_FAILED));
+    }
+
+    // 處理Member錯誤，例如帳號重複或確認密碼不一致。
+    @ExceptionHandler(MemberAccountExcption.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
+    public ApiResponse handleMemberAccountExcption(MemberAccountExcption exception) {
+        Map<String, String> errors = new TreeMap<>();
+        errors.put(exception.getErrorKey(), ResponseMessages.getMessage(exception.getMessageCode()));
+
+        String message = ResponseMessages.getMessage(ResponseMessages.VALIDATION_FAILED);
+        return new ApiResponse(message, errors);
+    }
 
 }

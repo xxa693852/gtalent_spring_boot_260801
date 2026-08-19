@@ -35,7 +35,7 @@ public class BookRepositoryImpl implements BookRepository {
 
     @Override
     public List<Book> findAll(int page, int size) {
-        int offset = (page - 1) * size; 
+        int offset = (page - 1) * size;
 
         // 1代表存在, 所以要抓出status = 1
         List<?> queryResults =  entityManager

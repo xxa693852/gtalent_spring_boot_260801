@@ -16,7 +16,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Entity //模組封裝化
+@Entity
 @Table(name = "members")
 public class Member {
 
