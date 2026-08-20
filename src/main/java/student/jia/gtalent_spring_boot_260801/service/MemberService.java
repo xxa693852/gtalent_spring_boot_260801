@@ -1,5 +1,7 @@
 package student.jia.gtalent_spring_boot_260801.service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -8,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import student.jia.gtalent_spring_boot_260801.constant.ResponseMessages;
 import student.jia.gtalent_spring_boot_260801.request.MemberPasswordUpdateRequest;
+import student.jia.gtalent_spring_boot_260801.request.MemberProfileUpdateRequest;
 import student.jia.gtalent_spring_boot_260801.request.MemberRegisterRequest;
 import student.jia.gtalent_spring_boot_260801.entity.Member;
 import student.jia.gtalent_spring_boot_260801.repository.MemberRepository;
@@ -32,10 +35,10 @@ public class MemberService {
         // 2. 如果找不到
         if (member.isEmpty()) {
             throw new ResourceNotFoundException(
-                "member",
-                ResponseMessages.MEMBER_NOT_FOUND);
+                    "member",
+                    ResponseMessages.MEMBER_NOT_FOUND);
         }
-        
+
         // 3. 有找到，就把 Member 拿出來
         return member.get();
 
@@ -75,7 +78,7 @@ public class MemberService {
         }
 
     }
-    
+
     @Transactional
     public void updatePassword(Long id, MemberPasswordUpdateRequest request) {
         // 比對傳入的密碼跟確認密碼
@@ -89,13 +92,78 @@ public class MemberService {
         // 2. 如果找不到
         if (member.isEmpty()) {
             throw new ResourceNotFoundException(
-                "member",
-                ResponseMessages.MEMBER_NOT_FOUND);
+                    "member",
+                    ResponseMessages.MEMBER_NOT_FOUND);
         }
-        
+
         // 3. 有找到，就把 Member 拿出來
         Member targetMember = member.get();
         targetMember.setPassword(this.passwordEncoder.encode(request.getPassword()));
     }
-     
+
+    @Transactional
+    public void updateProfile(Long id, MemberProfileUpdateRequest request)
+    {
+        // 1. 給repository找
+        Optional<Member> member = this.repository.findOneById(id);
+
+        // 2. 如果找不到
+        if (member.isEmpty()) {
+            throw new ResourceNotFoundException(
+                    "member",
+                    ResponseMessages.MEMBER_NOT_FOUND);
+        }
+
+        Member targetMember = member.get();
+
+        if (request.getName() != null) {
+            if (request.getName().isBlank()) {
+                throw new MemberAccountExcption("name", ResponseMessages.MEMBER_NAME_REQUIRED);
+            }
+
+            targetMember.setName(request.getName().trim());
+        }
+
+        if (request.getGender() != null) {
+            targetMember.setGender(request.getGender());
+        }
+
+        if (request.getEmail() != null) {
+            targetMember.setEmail(normalizeEmail(request.getEmail()));
+        }
+
+    }
+
+    @Transactional
+    public void delete(long id) {
+        // 1. 給repository找
+        Optional<Member> member = this.repository.findOneById(id);
+
+        // 2. 如果找不到
+        if (member.isEmpty()) {
+            throw new ResourceNotFoundException(
+                    "member",
+                    ResponseMessages.MEMBER_NOT_FOUND);
+        }
+
+        Member targetMember = member.get();
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter DELETED_ACCOUNT_TIMESTAMP_FORMAT =
+                DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+
+        byte deleteStatus = 0;
+        // 軟刪除時同步改 account，釋放原 account 給新註冊使用。
+        targetMember.setStatus(deleteStatus);
+        targetMember.setDeletedAt(now);
+        targetMember.setAccount("del_" + now.format(DELETED_ACCOUNT_TIMESTAMP_FORMAT) + "_" + targetMember.getAccount());
+    }
+    
+
+    private String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+
+        return email.trim();
+    }
 }
