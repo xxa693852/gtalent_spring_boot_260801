@@ -12,11 +12,13 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-
-
+/*import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+特別是@Entity，他是呼叫JPA管理的關鍵
+*/
 @Getter
 @Setter
-@Entity
+@Entity //這句讓 Member 成為 Entity
 @Table(name = "members")
 public class Member {
 

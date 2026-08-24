@@ -1,0 +1,1082 @@
+﻿============================================================
+Spring Boot MemberController 學習重點整理
+============================================================
+
+【一、最重要的主流程】
+
+前端 / Postman
+      ↓
+Controller
+      ↓
+Service
+      ↓
+Repository
+      ↓
+MySQL
+
+Controller = API 櫃台
+Service = 真正處理商業邏輯
+Repository = 負責跟資料庫溝通
+Entity = Java 裡的資料表模型
+Database = 真正存資料的地方
+
+
+============================================================
+【二、MemberController 完整架構】
+============================================================
+
+                         MemberController
+                                │
+          ┌─────────────────────┼─────────────────────┐
+          │                     │                     │
+        查詢                   註冊                   修改
+          │                     │                     │
+          ↓                     ↓                     ↓
+   MemberService         MemberService         MemberService
+          │                     │                     │
+          ↓                     ↓                     ↓
+ MemberRepository        MemberRepository       MemberRepository
+          │                     │                     │
+          ↓                     ↓                     ↓
+       members               members              members
+
+
+                         MemberController
+                                │
+                   ┌────────────┼────────────┐
+                   │            │            │
+                 Login        Refresh      Logout
+                   │            │            │
+                   ↓            ↓            ↓
+              MemberService MemberService MemberService
+                   │            │            │
+             ┌─────┴─────┐      │            │
+             ↓           ↓      ↓            ↓
+          members     JwtService      auth_tokens
+                         │
+                         ↓
+                    JWT Token
+
+
+============================================================
+【三、一定要記住：Controller 在做什麼？】
+============================================================
+
+Controller 主要負責：
+
+1. 接收 HTTP Request
+2. 把資料交給 Service
+3. 接收 Service 的結果
+4. 回傳 HTTP Response
+
+例如：
+
+POST /members/register
+        ↓
+MemberController
+        ↓
+memberService.register(request)
+        ↓
+回傳「會員註冊成功」
+
+看到：
+
+    memberService.xxx(...)
+
+就先理解成：
+
+    「Controller 把這件事情交給 MemberService 做。」
+
+
+============================================================
+【四、Controller / Service / Repository】
+============================================================
+
+Controller
+    ↓
+「有人送 API 請求進來了。」
+
+Service
+    ↓
+「我來決定這件事情應該怎麼處理。」
+
+Repository
+    ↓
+「我負責跟 MySQL 溝通。」
+
+
+生活化理解：
+
+Controller = 櫃台人員
+Service = 辦事人員
+Repository = 資料庫管理員
+MySQL = 檔案室
+
+
+============================================================
+【五、BookController vs MemberController】
+============================================================
+
+以前 Book 比較像：
+
+BookController
+      ↓
+BookRepository
+      ↓
+MySQL
+
+
+現在 Member：
+
+MemberController
+      ↓
+MemberService
+      ↓
+MemberRepository
+      ↓
+JPA
+      ↓
+MySQL
+
+
+Member 多了 Service，是因為會員系統有很多商業邏輯：
+
+- 檢查帳號是否重複
+- 檢查確認密碼
+- BCrypt 密碼加密
+- 修改會員
+- 軟刪除
+- 登入
+- JWT
+- Access Token
+- Refresh Token
+- Logout / Token 撤銷
+- Exception
+- Transaction
+
+
+============================================================
+【六、MemberController 的 API】
+============================================================
+
+GET /members/{id}
+    → 查詢會員
+
+POST /members/register
+    → 會員註冊
+
+PUT /members/{id}/profile
+    → 修改會員基本資料
+
+PUT /members/{id}/password
+    → 修改會員密碼
+
+DELETE /members/{id}
+    → 會員刪除（實際上是軟刪除）
+
+POST /members/login
+    → 登入並取得 Token
+
+POST /members/refresh
+    → 使用 Refresh Token 換新的 Token
+
+POST /members/logout
+    → 登出、撤銷 Token
+
+
+============================================================
+【七、註冊流程 —— 最重要】
+============================================================
+
+使用者
+  │
+  │ POST /members/register
+  │ JSON
+  ↓
+MemberController
+  │
+  │ MemberRegisterRequest
+  ↓
+MemberService.register()
+  │
+  ├── 檢查確認密碼
+  ├── 檢查帳號是否重複
+  ├── BCrypt 加密密碼
+  └── 建立 Member
+          │
+          ↓
+   MemberRepository
+          │
+          ↓
+        MySQL
+
+
+最簡單記法：
+
+JSON
+ ↓
+Request DTO
+ ↓
+Service
+ ↓
+Member
+ ↓
+repository.save(member)
+ ↓
+MySQL
+
+
+============================================================
+【八、@RequestBody】
+============================================================
+
+前端送：
+
+{
+    "name": "小明",
+    "account": "abc123",
+    "password": "123456",
+    "confirmPassword": "123456",
+    "email": "test@gmail.com",
+    "gender": 1
+}
+
+Controller：
+
+    @RequestBody MemberRegisterRequest request
+
+意思：
+
+「把 HTTP Body 裡的 JSON
+轉換成 MemberRegisterRequest 物件。」
+
+之後就可以：
+
+    request.getName()
+    request.getAccount()
+    request.getPassword()
+
+
+============================================================
+【九、@Valid】
+============================================================
+
+@Valid
+
+意思：
+
+「幫我檢查 Request 裡面的資料是否合法。」
+
+例如：
+
+@NotBlank
+    → 不能空白
+
+@Size(max = 30)
+    → 最多 30 個字
+
+@Size(min = 6, max = 12)
+    → 長度必須 6～12
+
+@Email
+    → 必須符合 Email 格式
+
+所以：
+
+@Valid @RequestBody MemberRegisterRequest request
+
+可以理解成：
+
+「收到資料後，先幫我檢查這張表格有沒有填錯。」
+
+
+============================================================
+【十、MemberService.register()】
+============================================================
+
+第一步：
+檢查 password 和 confirmPassword 是否相同
+
+        ↓
+
+第二步：
+檢查 account 是否已經存在
+
+        ↓
+
+第三步：
+使用 PasswordEncoder 加密密碼
+
+        ↓
+
+第四步：
+new Member(...)
+
+        ↓
+
+第五步：
+repository.save(member)
+
+        ↓
+
+MySQL
+
+
+============================================================
+【十一、密碼為什麼不能直接存？】
+============================================================
+
+使用者輸入：
+
+    123456
+
+不能直接存：
+
+    password = "123456"
+
+而是：
+
+    passwordEncoder.encode("123456")
+
+變成類似：
+
+    $2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...
+
+MySQL 存的是 Hash，不是原始密碼。
+
+
+登入時：
+
+    passwordEncoder.matches(
+        使用者輸入的密碼,
+        資料庫裡的 Hash
+    )
+
+
+註冊：
+
+明文密碼
+    ↓
+BCrypt Hash
+    ↓
+MySQL
+
+
+登入：
+
+使用者輸入密碼
+    ↓
+matches()
+    ↓
+與資料庫 Hash 比對
+
+
+============================================================
+【十二、PasswordEncoder 從哪裡來？】
+============================================================
+
+SecurityConfig：
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+意思：
+
+「請 Spring 建立 BCryptPasswordEncoder，
+其他 Class 需要時可以直接注入。」
+
+關係：
+
+SecurityConfig
+      ↓
+PasswordEncoder Bean
+      ↓
+MemberService
+
+
+這就是 Dependency Injection。
+
+
+============================================================
+【十三、查詢會員流程】
+============================================================
+
+GET /members/5
+      ↓
+MemberController
+      ↓
+memberService.findOneById(5)
+      ↓
+MemberRepository
+      ↓
+SELECT * FROM members
+WHERE id = 5
+AND status = 1
+      ↓
+Member
+      ↓
+MemberResponse
+      ↓
+JSON 回給前端
+
+
+============================================================
+【十四、Optional 是什麼？】
+============================================================
+
+Repository：
+
+    Optional<Member>
+
+原因：
+
+「會員可能存在，也可能不存在。」
+
+找到：
+    Optional 裡有 Member
+
+找不到：
+    Optional 是空的
+
+Service：
+
+    if (member.isEmpty()) {
+        throw new ResourceNotFoundException(...);
+    }
+
+簡單理解：
+
+Optional = 「可能有，也可能沒有」的盒子。
+
+
+============================================================
+【十五、為什麼要 MemberResponse？】
+============================================================
+
+不要直接：
+
+    return member;
+
+因為 Member 可能包含：
+
+    password
+
+即使 password 是 Hash，
+也不應該直接回傳給前端。
+
+所以：
+
+Member
+   ↓
+MemberResponse
+   ↓
+前端
+
+
+可以想成「重新包裝」。
+
+Member：
+├── id
+├── name
+├── gender
+├── account
+├── email
+├── password       ← 不應回傳
+├── status
+├── createdAt
+├── updatedAt
+└── deletedAt
+
+        ↓
+
+MemberResponse：
+├── id
+├── name
+├── gender
+├── account
+├── email
+├── status
+├── createdAt
+└── updatedAt
+
+
+============================================================
+【十六、JPA vs JDBC 最大差異】
+============================================================
+
+以前 JDBC：
+
+PreparedStatement
+      ↓
+UPDATE members SET name = ? WHERE id = ?
+      ↓
+executeUpdate()
+
+
+現在 JPA：
+
+Member targetMember
+      ↓
+targetMember.setName("小華")
+      ↓
+JPA 偵測 Entity 發生變化
+      ↓
+Transaction 結束
+      ↓
+JPA 幫你產生 UPDATE SQL
+
+
+所以看到：
+
+    targetMember.setName(...)
+    targetMember.setEmail(...)
+    targetMember.setGender(...)
+
+不要以為「沒有存檔」。
+
+JPA 可能會在交易提交時自動同步。
+
+
+============================================================
+【十七、@Transactional】
+============================================================
+
+先記住：
+
+「這個方法裡的資料庫操作，
+要當成一個完整的交易。」
+
+概念：
+
+開始交易
+    ↓
+做資料庫操作
+    ↓
+全部成功 → Commit
+
+其中失敗
+    ↓
+Rollback
+
+
+可以先理解成：
+
+「這一整組資料庫操作要一起成功或一起失敗。」
+
+
+============================================================
+【十八、Soft Delete 軟刪除】
+============================================================
+
+不是：
+
+    DELETE FROM members
+    WHERE id = 5;
+
+而是：
+
+    status = 0
+    deleted_at = 現在時間
+
+
+原本：
+
+    id = 5
+    account = abc123
+    status = 1
+
+
+刪除後：
+
+    id = 5
+    account = abc123
+    status = 0
+    deleted_at = 2026-...
+
+
+資料還存在，只是：
+
+「這個會員已經停用。」
+
+這叫：
+
+    Soft Delete
+    （軟刪除）
+
+
+============================================================
+【十九、為什麼刪除時還要修改 account？】
+============================================================
+
+假設：
+
+原會員：
+
+    account = abc123
+    status = 0
+
+
+新會員想註冊：
+
+    account = abc123
+
+
+但因為：
+
+    @Column(unique = true)
+
+abc123 還存在，所以可能註冊失敗。
+
+因此刪除時可能改成：
+
+    del_時間_abc123
+
+這樣就能釋放：
+
+    abc123
+
+讓新會員重新註冊。
+
+
+============================================================
+【二十、登入流程】
+============================================================
+
+使用者
+  │
+  │ 帳號 + 密碼
+  ↓
+MemberController
+  ↓
+MemberService
+  │
+  ├── 查詢帳號
+  ├── 檢查 status
+  ├── BCrypt 比對密碼
+  ├── 建立 Access Token
+  ├── 建立 Refresh Token
+  └── Token Hash 存進 auth_tokens
+  │
+  ↓
+TokenResponse
+  │
+  ↓
+前端
+
+
+============================================================
+【二十一、Access Token / Refresh Token】
+============================================================
+
+Access Token
+    ↓
+短期使用
+    ↓
+主要拿來呼叫 API
+
+
+Refresh Token
+    ↓
+長期使用
+    ↓
+Access Token 過期時拿來換新的 Access Token
+
+
+流程：
+
+登入成功
+    ↓
+Access Token + Refresh Token
+    ↓
+正常使用 API
+
+Access Token 過期
+    ↓
+拿 Refresh Token
+    ↓
+/members/refresh
+    ↓
+取得新的 Access Token
+
+
+============================================================
+【二十二、JWT 是什麼？】
+============================================================
+
+JWT 可以先理解成：
+
+「登入證明。」
+
+登入成功：
+
+Server
+  ↓
+發 JWT
+  ↓
+前端保存
+
+
+之後呼叫 API：
+
+Authorization: Bearer <Token>
+
+
+Server 就可以知道：
+
+「這個請求帶著登入證明。」
+
+JWT 可能包含：
+
+    ownerType
+    ownerId
+    tokenType
+    issuedAt
+    expiration
+
+
+也就是可以知道：
+
+    是誰？
+    哪一種使用者？
+    Access 還是 Refresh？
+    什麼時候過期？
+
+
+============================================================
+【二十三、為什麼 Refresh Token 還要存 MySQL？】
+============================================================
+
+你的專案不只檢查 JWT。
+
+還會檢查：
+
+    auth_tokens
+
+概念：
+
+JWT 本身合法
+       +
+auth_tokens 裡仍然有效
+       ↓
+才能使用
+
+
+例如：
+
+    revoked = 0
+    deleted_at IS NULL
+
+代表 Token 還有效。
+
+
+============================================================
+【二十四、Logout 為什麼可以讓 JWT 失效？】
+============================================================
+
+如果只有單純 JWT：
+
+Token 有效 7 天
+    ↓
+Logout
+    ↓
+Token 理論上仍可能有效
+
+
+你的專案有：
+
+    auth_tokens
+
+Logout 時：
+
+    revoked = 1
+    deleted_at = 現在時間
+
+
+之後查：
+
+    revoked = 0
+
+就找不到。
+
+所以：
+
+JWT 本身可能還沒過期
+        ↓
+資料庫說「已撤銷」
+        ↓
+Token 不能再使用
+
+
+============================================================
+【二十五、Exception 整體流程】
+============================================================
+
+例如：
+
+帳號已經存在
+        ↓
+MemberService
+        ↓
+throw new MemberAccountException(...)
+        ↓
+GlobalExceptionHandler
+        ↓
+統一轉成 API 錯誤 Response
+
+
+@Valid 驗證失敗也類似：
+
+Request
+   ↓
+@Valid
+   ↓
+發現資料錯誤
+   ↓
+Exception
+   ↓
+GlobalExceptionHandler
+   ↓
+回傳錯誤 JSON
+
+
+所以 MemberController 不需要到處寫 try-catch。
+
+
+============================================================
+【二十六、專案角色對照表】
+============================================================
+
+Controller
+    → API 櫃台
+
+Request DTO
+    → 使用者送進來的表格
+
+Service
+    → 真正處理商業邏輯的人
+
+Repository
+    → 負責跟資料庫溝通
+
+Entity
+    → Java 裡的資料表模型
+
+Response DTO
+    → 給前端看的資料包裝
+
+Exception
+    → 發生錯誤
+
+GlobalExceptionHandler
+    → 統一處理錯誤
+
+PasswordEncoder
+    → 密碼加密 / 比對
+
+JWT
+    → 登入證明
+
+Access Token
+    → 短期登入證明
+
+Refresh Token
+    → 用來換發新 Access Token
+
+AuthToken
+    → Server 管理 Token 狀態
+
+@Transactional
+    → 一組資料庫操作的交易
+
+
+============================================================
+【二十七、建議學習順序】
+============================================================
+
+第一階段：
+
+    MemberController
+          ↓
+    MemberService
+          ↓
+    MemberRepository
+          ↓
+    Member Entity
+          ↓
+    MySQL
+
+
+第二階段：
+
+    MemberRegisterRequest
+    MemberLoginRequest
+    MemberProfileUpdateRequest
+    MemberPasswordUpdateRequest
+
+
+第三階段：
+
+    MemberResponse
+    ApiResponse
+    TokenResponse
+
+
+第四階段：
+
+    @Valid
+    Exception
+    GlobalExceptionHandler
+
+
+第五階段：
+
+    PasswordEncoder
+    BCrypt
+
+
+第六階段：
+
+    JWT
+    Access Token
+    Refresh Token
+    AuthToken
+    Logout / Token Revocation
+
+
+不要一開始就硬背 JWT。
+
+先把：
+
+    Controller
+        ↓
+    Service
+        ↓
+    Repository
+        ↓
+    Database
+
+這條線搞懂。
+
+
+============================================================
+【二十八、最重要的一句話】
+============================================================
+
+看到 MemberController 時：
+
+不要把它看成一堆 Annotation。
+
+要把它翻譯成：
+
+「有人送 API 請求進來，
+Controller 收到資料，
+再把事情交給 Service，
+Service 處理真正的商業邏輯，
+Repository 負責跟資料庫溝通，
+最後把結果包裝成 Response 回給前端。」
+
+
+============================================================
+【二十九、最終總流程】
+============================================================
+
+                  前端 / Postman
+                        │
+                        ↓
+                 MemberController
+                        │
+                        ↓
+                  Request DTO
+                        │
+                        ↓
+                  MemberService
+                        │
+          ┌─────────────┼─────────────┐
+          ↓             ↓             ↓
+       驗證資料       商業邏輯       安全處理
+          │             │             │
+          │             │       PasswordEncoder
+          │             │       JWT / Token
+          │             │
+          └─────────────┼─────────────┘
+                        ↓
+                 MemberRepository
+                        │
+                        ↓
+                       JPA
+                        │
+                        ↓
+                     MySQL
+                        │
+                        ↓
+                  Entity / Result
+                        │
+                        ↓
+                  Response DTO
+                        │
+                        ↓
+                  前端收到 JSON
+
+
+============================================================
+【三十、真正要記住的 5 個核心觀念】
+============================================================
+
+1. Controller 不負責所有事情。
+
+    Controller
+        ↓
+    Service
+
+
+2. Service 是商業邏輯主要放置的地方。
+
+    檢查
+    驗證
+    密碼
+    登入
+    Token
+    軟刪除
+    等等
+
+
+3. Repository 負責資料庫操作。
+
+    Service
+       ↓
+    Repository
+       ↓
+    MySQL
+
+
+4. Request / Response 是資料傳輸用的 DTO。
+
+    Request
+       ↓
+    前端 → 後端
+
+    Response
+       ↓
+    後端 → 前端
+
+
+5. Member 比 Book 複雜，是因為加入：
+
+    Service 分層
+    JPA
+    Validation
+    Exception Handler
+    BCrypt
+    JWT
+    Access Token
+    Refresh Token
+    Token Database
+    Soft Delete
+    Transaction
+
+
+============================================================
+END
+============================================================

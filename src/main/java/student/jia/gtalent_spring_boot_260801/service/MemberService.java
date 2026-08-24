@@ -63,7 +63,7 @@ public class MemberService {
 
     }
 
-    @Transactional
+    @Transactional //這個方法裡的資料庫操作要當成一個完整的交易
     public Member register(MemberRegisterRequest request) {
         // 比對傳入的密碼跟確認密碼
         if (!request.getPassword().equals(request.getConfirmPassword())) {
@@ -116,7 +116,7 @@ public class MemberService {
         }
 
         // 3. 有找到，就把 Member 拿出來
-        Member targetMember = member.get();
+        Member targetMember = member.get();  //這句只是把 Entity 放進變數，這句本身沒有呼叫 JPA
         targetMember.setPassword(this.passwordEncoder.encode(request.getPassword()));
     }
 
@@ -124,6 +124,8 @@ public class MemberService {
     public void updateProfile(Long id, MemberProfileUpdateRequest request)
     {
         // 1. 給repository找
+        //Optional代表一個「可能存在、也可能不存在」的成員（Member）物件。這常見於 Java 或其他程式語言中，用來取代會造成錯誤的空值（null）。
+        // 它表示這個變數或回傳值裡面，有時候裝著一個 Member 資料，有時候裡面什麼都沒有。
         Optional<Member> member = this.repository.findOneById(id);
 
         // 2. 如果找不到
@@ -134,7 +136,7 @@ public class MemberService {
         }
 
         Member targetMember = member.get();
-
+        //!= null 不是在判斷「姓名是否正確」，而是在判斷「這次有沒有要修改姓名」，如果有值，那檢查那個值是否為空值或空白&空字串
         if (request.getName() != null) {
             if (request.getName().isBlank()) {
                 throw new MemberAccountExcption("name", ResponseMessages.MEMBER_NAME_REQUIRED);
@@ -236,7 +238,7 @@ public class MemberService {
         if (email == null || email.isBlank()) {
             return null;
         }
-
+        //刪除電子郵件字串開頭和結尾的空格，並傳回乾淨的文字
         return email.trim();
     }
 
