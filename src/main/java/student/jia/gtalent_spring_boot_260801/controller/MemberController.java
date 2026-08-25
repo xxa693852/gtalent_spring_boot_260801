@@ -22,10 +22,9 @@ import student.jia.gtalent_spring_boot_260801.service.MemberService;
 
 import student.jia.gtalent_spring_boot_260801.request.MemberLoginRequest;
 import student.jia.gtalent_spring_boot_260801.request.TokenLogoutRequest;
-import student.jia.gtalent_spring_boot_260801.request.TokenRefreshRequest;
 
-@RestController //這個 Class 是 API Controller
-@RequestMapping("/members") //代表所有 API 前面都加：members
+@RestController
+@RequestMapping("/members")
 public class MemberController {
 
     private final MemberService memberService;
@@ -34,15 +33,14 @@ public class MemberController {
         this.memberService = memberService;
     }
 
-    @GetMapping("/{id}") //GET /members/1(id)
-    @ResponseStatus(HttpStatus.OK) //預設回傳200
+    @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
     public MemberResponse getOneById(@PathVariable Long id) {
         return new MemberResponse(memberService.findOneById(id));
     }
 
-    @PostMapping("/register") //POST /members/register
-    @ResponseStatus(HttpStatus.CREATED) // REST 控制器方法上使用的 Java 註解，用於配置端點，使其在請求成功時傳回HTTP 狀態碼 201（已建立）而不是預設的 200（已確定）。
-    //@Valid 用來啟動MemberRegisterRequest裡的驗證規則
+    @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse register(@Valid @RequestBody MemberRegisterRequest request) {
         memberService.register(request);
         return new ApiResponse("會員註冊成功");
@@ -60,7 +58,7 @@ public class MemberController {
     }
 
     @PutMapping("/{id}/password")
-    @ResponseStatus(HttpStatus.OK) //用於將控制器方法或自訂異常的HTTP 回應狀態碼明確設定為 200 OK 的註解
+    @ResponseStatus(HttpStatus.OK)
     public ApiResponse updatePassword(
             @PathVariable Long id,
             @Valid @RequestBody MemberPasswordUpdateRequest request) {
@@ -79,12 +77,6 @@ public class MemberController {
     @ResponseStatus(HttpStatus.OK)
     public TokenResponse login(@Valid @RequestBody MemberLoginRequest request) {
         return memberService.login(request);
-    }
-
-    @PostMapping("/refresh")
-    @ResponseStatus(HttpStatus.OK)
-    public TokenResponse refresh(@Valid @RequestBody TokenRefreshRequest request) {
-        return memberService.refresh(request.getRefreshToken());
     }
 
     @PostMapping("/logout")

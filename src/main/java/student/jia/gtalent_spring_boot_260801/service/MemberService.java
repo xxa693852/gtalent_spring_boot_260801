@@ -7,10 +7,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import student.jia.gtalent_spring_boot_260801.constant.AuthOwnerTypes;
@@ -63,7 +59,7 @@ public class MemberService {
 
     }
 
-    @Transactional //這個方法裡的資料庫操作要當成一個完整的交易
+    @Transactional
     public Member register(MemberRegisterRequest request) {
         // 比對傳入的密碼跟確認密碼
         if (!request.getPassword().equals(request.getConfirmPassword())) {
@@ -116,7 +112,7 @@ public class MemberService {
         }
 
         // 3. 有找到，就把 Member 拿出來
-        Member targetMember = member.get();  //這句只是把 Entity 放進變數，這句本身沒有呼叫 JPA
+        Member targetMember = member.get();
         targetMember.setPassword(this.passwordEncoder.encode(request.getPassword()));
     }
 
@@ -124,8 +120,6 @@ public class MemberService {
     public void updateProfile(Long id, MemberProfileUpdateRequest request)
     {
         // 1. 給repository找
-        //Optional代表一個「可能存在、也可能不存在」的成員（Member）物件。這常見於 Java 或其他程式語言中，用來取代會造成錯誤的空值（null）。
-        // 它表示這個變數或回傳值裡面，有時候裝著一個 Member 資料，有時候裡面什麼都沒有。
         Optional<Member> member = this.repository.findOneById(id);
 
         // 2. 如果找不到
@@ -136,7 +130,7 @@ public class MemberService {
         }
 
         Member targetMember = member.get();
-        //!= null 不是在判斷「姓名是否正確」，而是在判斷「這次有沒有要修改姓名」，如果有值，那檢查那個值是否為空值或空白&空字串
+
         if (request.getName() != null) {
             if (request.getName().isBlank()) {
                 throw new MemberAccountExcption("name", ResponseMessages.MEMBER_NAME_REQUIRED);
@@ -190,60 +184,9 @@ public class MemberService {
             throw new MemberAccountExcption("password", ResponseMessages.MEMBER_LOGIN_FAILED);
         }
 
-        return createAndSaveToken(AuthOwnerTypes.MEMBER, member.getId());
-    }
-
-    @Transactional
-    public TokenResponse refresh(String refreshToken) {
-        // refresh token 還有效時，撤銷舊紀錄並建立一組新 access/refresh token。
-        Claims claims = parseRefreshToken(refreshToken);
-        String ownerType = claims.get("ownerType", String.class);
-        String tokenType = claims.get("tokenType", String.class);
-
-        if (!AuthOwnerTypes.MEMBER.equals(ownerType) || !"refresh".equals(tokenType)) {
-            throw new MemberAccountExcption("refreshToken", ResponseMessages.TOKEN_INVALID);
-        }
-
-        String refreshTokenHash = jwtService.hashToken(refreshToken);
-        AuthToken authToken = authTokenRepository
-                .findActiveByRefreshTokenHashAndOwnerType(refreshTokenHash, AuthOwnerTypes.MEMBER)
-                .orElseThrow(() -> new MemberAccountExcption("refreshToken", ResponseMessages.TOKEN_INVALID));
-
-        if (authToken.getRefreshExpiresAt().isBefore(LocalDateTime.now())) {
-            authToken.setRevoked(TOKEN_REVOKED);
-            throw new MemberAccountExcption("refreshToken", ResponseMessages.TOKEN_EXPIRED);
-        }
-
-        authToken.setRevoked(TOKEN_REVOKED);
-        authToken.setDeletedAt(LocalDateTime.now());
-
-        return createAndSaveToken(AuthOwnerTypes.MEMBER, authToken.getOwnerId());
-    }
-
-
-    @Transactional
-    public void logout(String refreshToken) {
-        // logout 採用軟撤銷，讓同一顆 refresh token 之後不能再換 token。
-        String refreshTokenHash = jwtService.hashToken(refreshToken);
-        authTokenRepository
-                .findActiveByRefreshTokenHashAndOwnerType(refreshTokenHash, AuthOwnerTypes.MEMBER)
-                .ifPresent(authToken -> {
-                    authToken.setRevoked(TOKEN_REVOKED);
-                    authToken.setDeletedAt(LocalDateTime.now());
-                });
-    }
-    
-
-    private String normalizeEmail(String email) {
-        if (email == null || email.isBlank()) {
-            return null;
-        }
-        //刪除電子郵件字串開頭和結尾的空格，並傳回乾淨的文字
-        return email.trim();
-    }
-
-    private TokenResponse createAndSaveToken(String ownerType, Long ownerId) {
-        // 發 token 後把 hash 與過期時間存 MySQL，供 logout / refresh rotation / token 檢查使用。
+        // 發 token 後把 hash 與過期時間存 MySQL，供 logout / rotation / token 檢查使用。
+        String ownerType = AuthOwnerTypes.MEMBER;
+        Long ownerId = member.getId();
         LocalDateTime accessExpiresAt = jwtService.getAccessExpiresAt();
         LocalDateTime refreshExpiresAt = jwtService.getRefreshExpiresAt();
         String accessToken = jwtService.generateAccessToken(ownerType, ownerId, accessExpiresAt);
@@ -262,13 +205,25 @@ public class MemberService {
         return new TokenResponse(accessToken, refreshToken, accessExpiresAt, refreshExpiresAt);
     }
 
-    private Claims parseRefreshToken(String refreshToken) {
-        try {
-            return jwtService.parse(refreshToken);
-        } catch (ExpiredJwtException exception) {
-            throw new MemberAccountExcption("refreshToken", ResponseMessages.TOKEN_EXPIRED);
-        } catch (JwtException | IllegalArgumentException exception) {
-            throw new MemberAccountExcption("refreshToken", ResponseMessages.TOKEN_INVALID);
-        }
+    @Transactional
+    public void logout(String refreshToken) {
+        // logout 採用軟撤銷，讓同一顆 refresh token 之後不能再換 token。
+        String refreshTokenHash = jwtService.hashToken(refreshToken);
+        AuthToken authToken = authTokenRepository
+                .findActiveByRefreshTokenHashAndOwnerType(refreshTokenHash, AuthOwnerTypes.MEMBER)
+                .orElseThrow(() -> new MemberAccountExcption("refreshToken", ResponseMessages.TOKEN_INVALID));
+
+        authToken.setRevoked(TOKEN_REVOKED);
+        authToken.setDeletedAt(LocalDateTime.now());
     }
+    
+
+    private String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+
+        return email.trim();
+    }
+
 }
