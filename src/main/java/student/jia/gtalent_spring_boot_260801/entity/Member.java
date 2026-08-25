@@ -23,7 +23,7 @@ import jakarta.persistence.Table;
 public class Member {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) //這個 ID 交給資料庫自動遞增（Auto Increment）來產生，Java 程式不需要（也不應該）手動傳入 ID 值。
     private Long id;
 
     @Column(nullable = false, length = 64)
@@ -63,14 +63,14 @@ public class Member {
         this.email = email;
         this.password = password;
     }
-
+    // @PrePersist: 新建時自動初始化建立與更新時間
     @PrePersist
     public void prePersist() {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
     }
-
+    // @PreUpdate: 修改時自動刷新最後更新時間
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();

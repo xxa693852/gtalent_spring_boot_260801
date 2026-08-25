@@ -1,6 +1,8 @@
 package student.jia.gtalent_spring_boot_260801.repository;
 
 import java.util.Optional;
+
+import org.hibernate.annotations.processing.SQL;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -8,14 +10,22 @@ import org.springframework.data.repository.query.Param;
 import student.jia.gtalent_spring_boot_260801.entity.Member;
 //extends JpaRepository<Member, Long> 它告訴 Spring Data JPA：「這個 Repository 是拿來操作 Member Entity 的。」
 //extends JpaRepository<Member, Long>這句讓 Repository 成為 JPA Repository
+//<Member, Long> Member → 我要操作的 Entity
+//               Long   → Member 的 ID 型別
 public interface MemberRepository extends JpaRepository<Member, Long> {
     //@Query 告訴 Spring Data JPA 使用自訂 SQL 語句而不是自動產生語句
+    //@Query 就是在告訴 Spring：「這個 Repository 方法，我不要讓你自己猜怎麼查，我直接告訴你要執行哪一段查詢
+    //@Query 指定這個 Repository 方法要用什麼查詢
     @Query(
-        value="SELECT COUNT(*) FROM members WHERE account = :account",
-                nativeQuery = true
+        value="SELECT COUNT(*) FROM members WHERE account = :account", //:account就是等等會從Java 方法拿一個值進來的位置
+                nativeQuery = true  //這一串是「原生 SQL」也就是把上面這段語法交給資料庫，這不是 JPQL，這就是我要直接給資料庫執行的 SQL
+                               
     )
     // 去資料庫內搜尋這個帳號的數量
     public long countByAccount(@Param("account") String account);
+   /*  @Param("account")  → 告訴 Spring：SQL 裡的 :account
+                ↓
+        String account     → Java 方法收到的參數*/
 
 
     @Query(
