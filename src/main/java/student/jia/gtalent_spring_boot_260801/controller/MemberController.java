@@ -23,7 +23,7 @@ import student.jia.gtalent_spring_boot_260801.service.MemberService;
 import student.jia.gtalent_spring_boot_260801.request.MemberLoginRequest;
 import student.jia.gtalent_spring_boot_260801.request.TokenLogoutRequest;
 
-@RestController
+@RestController //這個 Class 是一個 Web API 控制器；告訴 Spring 這個類別專門用來接收 HTTP 請求（如 GET、POST），並且直接把執行的結果「轉換成資料（如 JSON 或 XML）」傳回給前端，而不是去渲染 HTML 網頁
 @RequestMapping("/members")
 public class MemberController {
 

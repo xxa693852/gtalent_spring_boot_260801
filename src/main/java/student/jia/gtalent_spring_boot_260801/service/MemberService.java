@@ -28,7 +28,7 @@ public class MemberService {
 
     private MemberRepository repository;
     private PasswordEncoder passwordEncoder;
-    private JwtService jwtService;
+    private JwtService jwtService; //
     private AuthTokenRepository authTokenRepository;
     private Byte TOKEN_REVOKED = 1;
 
@@ -59,7 +59,7 @@ public class MemberService {
 
     }
 
-    @Transactional
+    @Transactional //維持資料正確性，對資料庫的操作要麼全部成功，要麼全部失敗
     public Member register(MemberRegisterRequest request) {
         // 比對傳入的密碼跟確認密碼
         if (!request.getPassword().equals(request.getConfirmPassword())) {
