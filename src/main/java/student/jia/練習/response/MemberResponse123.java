@@ -5,10 +5,10 @@ package student.jia.練習.response;
 import java.time.LocalDateTime;
 
 import lombok.Getter;
-import student.jia.練習.entity.Member;
+import student.jia.練習.entity.Member123;
 
 @Getter
-public class MemberResponse {
+public class MemberResponse123 {
 
     private Long id;
     private String name;
@@ -19,7 +19,7 @@ public class MemberResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public MemberResponse(Member member) {
+    public MemberResponse123(Member123 member) {
         this.id = member.getId();
         this.name = member.getName();
         this.gender = member.getGender();

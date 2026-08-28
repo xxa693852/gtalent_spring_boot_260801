@@ -34,7 +34,8 @@ public class MemberController {
     }
 
     @GetMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
+    @ResponseStatus(HttpStatus.OK) // 指定此 API 成功回應的 HTTP 狀態碼為 200 OK
+    // @PathVariable : 從 URL 路徑擷取目標會員 ID
     public MemberResponse getOneById(@PathVariable Long id) {
         return new MemberResponse(memberService.findOneById(id));
     }

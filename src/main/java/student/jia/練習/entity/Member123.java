@@ -20,7 +20,7 @@ import jakarta.persistence.Table;
 @Setter
 @Entity //這句讓 Member 成為 Entity
 @Table(name = "members")
-public class Member {
+public class Member123 {
 
 @Id
 @GeneratedValue(strategy = GenerationType.IDENTITY) //這個 ID 交給資料庫自動遞增（Auto Increment）來產生，Java 程式不需要（也不應該）手動傳入 ID 值。
@@ -53,11 +53,11 @@ private LocalDateTime updateAt;
 @Column(name ="deleted_at")
 private LocalDateTime deletedAt;
 
-protected Member(){
+protected Member123(){
 
 }
 
-public Member(String name, Byte gender, String account, String email, String password) {
+public Member123(String name, Byte gender, String account, String email, String password) {
     this.name = name;
     this.gender = gender;
     this.account = account;

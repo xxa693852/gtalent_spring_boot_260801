@@ -23,7 +23,7 @@ import student.jia.gtalent_spring_boot_260801.repository.MemberRepository;
 import student.jia.gtalent_spring_boot_260801.exception.MemberAccountExcption;
 import student.jia.gtalent_spring_boot_260801.exception.ResourceNotFoundException;
 
-@Service
+@Service // 必須加上這個註解！告訴 Spring 將它註冊為 Bean
 public class MemberService {
 
     private MemberRepository repository;
