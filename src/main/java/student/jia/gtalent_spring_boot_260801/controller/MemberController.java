@@ -50,25 +50,25 @@ public class MemberController {
         return new MemberResponse(memberService.findOneById(id));
     }
     //查詢全部
-    @GetMapping
-    public PageResponse<MemberResponse> getAll(
-        @RequestParam(defaultValue = "1") int page,
-        @RequestParam(defaultValue = "10") int size) { 
-        // 預設頁碼從1開始
-        if(page<1){
-            page = 1;
-        }
-        // 每頁最少數量不能為0
-        // 如果帶0進來, 自動呈現1頁10組
-        if(size <1){
-            size = 10;
-        }
-        // 每頁最大不能超過50組
-        if(size >50){
-            size = 50;
-        }
-        return memberService.findAll(page, size);
-    }
+    // @GetMapping
+    // public PageResponse<MemberResponse> getAll(
+    //     @RequestParam(defaultValue = "1") int page,
+    //     @RequestParam(defaultValue = "10") int size) { 
+    //     // 預設頁碼從1開始
+    //     if(page<1){
+    //         page = 1;
+    //     }
+    //     // 每頁最少數量不能為0
+    //     // 如果帶0進來, 自動呈現1頁10組
+    //     if(size <1){
+    //         size = 10;
+    //     }
+    //     // 每頁最大不能超過50組
+    //     if(size >50){
+    //         size = 50;
+    //     }
+    //     return memberService.findAll(page, size);
+    // }
     
 
     @PostMapping("/register")

@@ -1,16 +1,17 @@
 package student.jia.gtalent_spring_boot_260801.service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Base64;
 import java.util.Optional;
-
-import org.springframework.data.domain.Page;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Pageable;
+import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 import student.jia.gtalent_spring_boot_260801.constant.AuthOwnerTypes;
 import student.jia.gtalent_spring_boot_260801.constant.ResponseMessages;
 import student.jia.gtalent_spring_boot_260801.request.MemberForgotPasswordRequest;
@@ -19,28 +20,25 @@ import student.jia.gtalent_spring_boot_260801.request.MemberPasswordResetRequest
 import student.jia.gtalent_spring_boot_260801.request.MemberPasswordUpdateRequest;
 import student.jia.gtalent_spring_boot_260801.request.MemberProfileUpdateRequest;
 import student.jia.gtalent_spring_boot_260801.request.MemberRegisterRequest;
-import student.jia.gtalent_spring_boot_260801.response.MemberResponse;
-import student.jia.gtalent_spring_boot_260801.response.PageResponse;
 import student.jia.gtalent_spring_boot_260801.response.TokenResponse;
 import student.jia.gtalent_spring_boot_260801.entity.AuthToken;
 import student.jia.gtalent_spring_boot_260801.entity.Member;
+import student.jia.gtalent_spring_boot_260801.entity.PasswordResetToken;
 import student.jia.gtalent_spring_boot_260801.repository.AuthTokenRepository;
 import student.jia.gtalent_spring_boot_260801.repository.MemberRepository;
+import student.jia.gtalent_spring_boot_260801.repository.PasswordResetTokenRepository;
 import student.jia.gtalent_spring_boot_260801.exception.MemberAccountExcption;
 import student.jia.gtalent_spring_boot_260801.exception.ResourceNotFoundException;
-import java.util.List;
-import java.security.SecureRandom;
-import java.util.Base64;
-import org.springframework.beans.factory.annotation.Value;
-import student.jia.gtalent_spring_boot_260801.entity.PasswordResetToken;
 
-@Service // 必須加上這個註解！告訴 Spring 將它註冊為 Bean
+@Service
 public class MemberService {
 
     private MemberRepository repository;
     private PasswordEncoder passwordEncoder;
-    private JwtService jwtService; //
+    private JwtService jwtService;
+    private MailService mailService;
     private AuthTokenRepository authTokenRepository;
+    private PasswordResetTokenRepository passwordResetTokenRepository;
     private Byte TOKEN_REVOKED = 1;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private String appBaseUrl;
@@ -50,13 +48,17 @@ public class MemberService {
             MemberRepository repository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
+            MailService mailService,
             AuthTokenRepository authTokenRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
             @Value("${app.base-url}") String appBaseUrl,
             @Value("${member.password-reset-token-minutes}") long passwordResetTokenMinutes) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.mailService = mailService;
         this.authTokenRepository = authTokenRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.appBaseUrl = appBaseUrl;
         this.passwordResetTokenMinutes = passwordResetTokenMinutes;
     }
@@ -76,31 +78,8 @@ public class MemberService {
         return member.get();
 
     }
-    //查詢全部
-    public PageResponse<MemberResponse> findAll(int page, int size){
-        // 1. 建立 JPA 分頁物件 (注意：JPA 的頁碼從 0 開始，所以要 page - 1)
-        Pageable pageable = PageRequest.of(page -1,size);
 
-        // 2) 呼叫實例變數 memberRepository (小寫)
-        // 3) 使用大寫 Page<Member> 接收回傳值
-        Page<Member> memberPage = repository.findAll(pageable);
-
-        // 4. 將 Entity 轉成 DTO
-        List<MemberResponse> content = memberPage.getContent()
-                .stream()
-                .map(MemberResponse::new)// 或是 MemberResponse::from
-                .toList();
-            // 5. 打包成你課堂提供的 PageResponse 並回傳！
-            return new PageResponse<MemberResponse>(
-                content,
-                page,
-                size,
-                memberPage.getTotalElements()// JPA 幫你算好的總筆數
-            );
-
-    }
-
-    @Transactional //維持資料正確性，對資料庫的操作要麼全部成功，要麼全部失敗
+    @Transactional
     public Member register(MemberRegisterRequest request) {
         // 比對傳入的密碼跟確認密碼
         if (!request.getPassword().equals(request.getConfirmPassword())) {
@@ -246,7 +225,7 @@ public class MemberService {
         return new TokenResponse(accessToken, refreshToken, accessExpiresAt, refreshExpiresAt);
     }
 
-    @Transactional //維持資料正確性，對資料庫的操作要麼全部成功，要麼全部失敗
+    @Transactional
     public void logout(String refreshToken) {
         // logout 採用軟撤銷，讓同一顆 refresh token 之後不能再換 token。
         String refreshTokenHash = jwtService.hashToken(refreshToken);
@@ -257,7 +236,6 @@ public class MemberService {
         authToken.setRevoked(TOKEN_REVOKED);
         authToken.setDeletedAt(LocalDateTime.now());
     }
-    
 
     @Transactional
     public void forgotPassword(MemberForgotPasswordRequest request) {
@@ -309,9 +287,13 @@ public class MemberService {
         // 4. 把link = app_url + token 組合起來, 寄信給使用者
         // ex: http://localhost:8080/members-resset-password?token=xxxxxxxx
 
-         // appBaseUrl 是網站對外網址，例如 http://localhost:8080 或正式站 https://example.com。
+        // appBaseUrl 是網站對外網址，例如 http://localhost:8080 或正式站 https://example.com。
         // email 必須放完整 URL，使用者點擊後才會回到本系統的重設密碼頁。
-        String resetLink = appBaseUrl + "/page/reset-password?token=" + rawToken;
+        // String resetLink = appBaseUrl + "/page/reset-password?token=" + rawToken;
+
+        String resetLink = """
+            %s/page/reset-password?token=%s
+        """.formatted(appBaseUrl, tokenHash);
 
         // 信件內容只放重設連結與有效時間。
         // 不把密碼、會員 id 或 token hash 放進信中。
@@ -330,7 +312,45 @@ public class MemberService {
 
     @Transactional
     public void resetPassword(MemberPasswordResetRequest request) {
-        
+        // 1. 檢查token
+
+        // (1.1).給repository找
+        String token = request.getToken().trim();
+        LocalDateTime now = LocalDateTime.now();
+        Optional<PasswordResetToken> passwordResetToken = passwordResetTokenRepository.findValidByTokenHash(token, now);
+
+        // (1.2). 如果資料庫找不到token
+        if (passwordResetToken.isEmpty()) {
+            throw new MemberAccountExcption("token", ResponseMessages.PASSWORD_RESET_TOKEN_INVALID);
+        }
+
+        // 有找到就繼續
+        PasswordResetToken targetTokenHash = passwordResetToken.get();
+
+        // 2. 找target member
+        Long memberId = targetTokenHash.getMemberId();
+        Optional<Member> member = this.repository.findOneById(memberId);
+        if (member.isEmpty()) {
+            throw new ResourceNotFoundException(
+                    "member",
+                    ResponseMessages.MEMBER_NOT_FOUND);
+        }
+
+        Member targetMember = member.get();
+        // 3. 修改密碼
+        targetMember.setPassword(this.passwordEncoder.encode(request.getPassword()));
+
+    }
+
+    // 重設密碼頁面驗證token
+    public boolean isPasswordResetTokenValid(String token) {
+        if (token == null || token.isBlank()) {
+            return false;
+        }
+
+        return passwordResetTokenRepository
+                .findValidByTokenHash(jwtService.hashToken(token.trim()), LocalDateTime.now())
+                .isPresent();
     }
     
 
