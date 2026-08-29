@@ -13,7 +13,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import student.jia.gtalent_spring_boot_260801.constant.AuthOwnerTypes;
 import student.jia.gtalent_spring_boot_260801.constant.ResponseMessages;
+import student.jia.gtalent_spring_boot_260801.request.MemberForgotPasswordRequest;
 import student.jia.gtalent_spring_boot_260801.request.MemberLoginRequest;
+import student.jia.gtalent_spring_boot_260801.request.MemberPasswordResetRequest;
 import student.jia.gtalent_spring_boot_260801.request.MemberPasswordUpdateRequest;
 import student.jia.gtalent_spring_boot_260801.request.MemberProfileUpdateRequest;
 import student.jia.gtalent_spring_boot_260801.request.MemberRegisterRequest;
@@ -232,7 +234,7 @@ public class MemberService {
         return new TokenResponse(accessToken, refreshToken, accessExpiresAt, refreshExpiresAt);
     }
 
-    @Transactional
+    @Transactional //維持資料正確性，對資料庫的操作要麼全部成功，要麼全部失敗
     public void logout(String refreshToken) {
         // logout 採用軟撤銷，讓同一顆 refresh token 之後不能再換 token。
         String refreshTokenHash = jwtService.hashToken(refreshToken);
@@ -251,6 +253,16 @@ public class MemberService {
         }
 
         return email.trim();
+    }
+
+    @Transactional //維持資料正確性，對資料庫的操作要麼全部成功，要麼全部失敗
+    public void forgotPassword(MemberForgotPasswordRequest request) {
+
+    }
+
+        @Transactional //維持資料正確性，對資料庫的操作要麼全部成功，要麼全部失敗
+    public void resetPassword(MemberPasswordResetRequest request) {
+
     }
 
 }
