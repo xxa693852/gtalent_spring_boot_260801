@@ -2,7 +2,7 @@ package student.jia.練習.repository;
 
 import java.util.Optional;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaRepository; // JpaRepository 已經內建了 List<Member123> findAll();
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 

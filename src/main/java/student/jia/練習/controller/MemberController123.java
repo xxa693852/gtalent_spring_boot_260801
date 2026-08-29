@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-
+import java.util.List;
 import student.jia.練習.response.MemberResponse123;
 import student.jia.練習.service.MemberService123;
 
@@ -26,4 +26,9 @@ public class MemberController123 {
 public MemberResponse123 getOneById(@PathVariable Long id){
     return new MemberResponse123(memberService.findOneById(id));
 }
+@GetMapping
+public List<MemberResponse123> getAll(){
+    return memberService.findAll();
+}
+
 }

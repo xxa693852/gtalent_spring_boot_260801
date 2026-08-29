@@ -3,18 +3,22 @@ package student.jia.gtalent_spring_boot_260801.service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import student.jia.gtalent_spring_boot_260801.constant.AuthOwnerTypes;
 import student.jia.gtalent_spring_boot_260801.constant.ResponseMessages;
 import student.jia.gtalent_spring_boot_260801.request.MemberLoginRequest;
 import student.jia.gtalent_spring_boot_260801.request.MemberPasswordUpdateRequest;
 import student.jia.gtalent_spring_boot_260801.request.MemberProfileUpdateRequest;
 import student.jia.gtalent_spring_boot_260801.request.MemberRegisterRequest;
+import student.jia.gtalent_spring_boot_260801.response.MemberResponse;
+import student.jia.gtalent_spring_boot_260801.response.PageResponse;
 import student.jia.gtalent_spring_boot_260801.response.TokenResponse;
 import student.jia.gtalent_spring_boot_260801.entity.AuthToken;
 import student.jia.gtalent_spring_boot_260801.entity.Member;
@@ -22,7 +26,7 @@ import student.jia.gtalent_spring_boot_260801.repository.AuthTokenRepository;
 import student.jia.gtalent_spring_boot_260801.repository.MemberRepository;
 import student.jia.gtalent_spring_boot_260801.exception.MemberAccountExcption;
 import student.jia.gtalent_spring_boot_260801.exception.ResourceNotFoundException;
-
+import java.util.List;
 @Service // 必須加上這個註解！告訴 Spring 將它註冊為 Bean
 public class MemberService {
 
@@ -56,6 +60,29 @@ public class MemberService {
 
         // 3. 有找到，就把 Member 拿出來
         return member.get();
+
+    }
+    //查詢全部
+    public PageResponse<MemberResponse> findAll(int page, int size){
+        // 1. 建立 JPA 分頁物件 (注意：JPA 的頁碼從 0 開始，所以要 page - 1)
+        Pageable pageable = PageRequest.of(page -1,size);
+
+        // 2) 呼叫實例變數 memberRepository (小寫)
+        // 3) 使用大寫 Page<Member> 接收回傳值
+        Page<Member> memberPage = repository.findAll(pageable);
+
+        // 4. 將 Entity 轉成 DTO
+        List<MemberResponse> content = memberPage.getContent()
+                .stream()
+                .map(MemberResponse::new)// 或是 MemberResponse::from
+                .toList();
+            // 5. 打包成你課堂提供的 PageResponse 並回傳！
+            return new PageResponse<MemberResponse>(
+                content,
+                page,
+                size,
+                memberPage.getTotalElements()// JPA 幫你算好的總筆數
+            );
 
     }
 

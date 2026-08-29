@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,11 +18,14 @@ import student.jia.gtalent_spring_boot_260801.request.MemberProfileUpdateRequest
 import student.jia.gtalent_spring_boot_260801.request.MemberRegisterRequest;
 import student.jia.gtalent_spring_boot_260801.response.ApiResponse;
 import student.jia.gtalent_spring_boot_260801.response.MemberResponse;
+import student.jia.gtalent_spring_boot_260801.response.PageResponse;
 import student.jia.gtalent_spring_boot_260801.response.TokenResponse;
 import student.jia.gtalent_spring_boot_260801.service.MemberService;
-
+import student.jia.gtalent_spring_boot_260801.repository.MemberRepository;
 import student.jia.gtalent_spring_boot_260801.request.MemberLoginRequest;
 import student.jia.gtalent_spring_boot_260801.request.TokenLogoutRequest;
+
+
 
 @RestController //這個 Class 是一個 Web API 控制器；告訴 Spring 這個類別專門用來接收 HTTP 請求（如 GET、POST），並且直接把執行的結果「轉換成資料（如 JSON 或 XML）」傳回給前端，而不是去渲染 HTML 網頁
 @RequestMapping("/members")
@@ -29,8 +33,9 @@ public class MemberController {
 
     private final MemberService memberService;
 
-    public MemberController(MemberService memberService) {
+    public MemberController(MemberService memberService,MemberRepository repository) {
         this.memberService = memberService;
+
     }
 
     @GetMapping("/{id}")
@@ -39,6 +44,27 @@ public class MemberController {
     public MemberResponse getOneById(@PathVariable Long id) {
         return new MemberResponse(memberService.findOneById(id));
     }
+    //查詢全部
+    @GetMapping
+    public PageResponse<MemberResponse> getAll(
+        @RequestParam(defaultValue = "1") int page,
+        @RequestParam(defaultValue = "10") int size) { 
+        // 預設頁碼從1開始
+        if(page<1){
+            page = 1;
+        }
+        // 每頁最少數量不能為0
+        // 如果帶0進來, 自動呈現1頁10組
+        if(size <1){
+            size = 10;
+        }
+        // 每頁最大不能超過50組
+        if(size >50){
+            size = 50;
+        }
+        return memberService.findAll(page, size);
+    }
+    
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
