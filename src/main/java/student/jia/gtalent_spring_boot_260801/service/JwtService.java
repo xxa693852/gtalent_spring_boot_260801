@@ -126,8 +126,8 @@ public class JwtService {
                 .subject(String.valueOf(ownerId))
                 .claim("ownerType", ownerType)
                 .claim("tokenType", tokenType)
-                .issuedAt(new Date())
-                .expiration(toDate(expiresAt))
+                .issuedAt(new Date()) //發行日期
+                .expiration(toDate(expiresAt)) //到期日
                 .signWith(secretKey)
                 .compact();
     }

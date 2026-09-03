@@ -40,7 +40,7 @@ public class MemberService {
     private AuthTokenRepository authTokenRepository;
     private PasswordResetTokenRepository passwordResetTokenRepository;
     private Byte TOKEN_REVOKED = 1;
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom(); //SECURE_RANDOM:安全隨機
     private String appBaseUrl;
     private long passwordResetTokenMinutes;
 
@@ -201,7 +201,7 @@ public class MemberService {
 
         // BCrypt 每次 encode 都會產生不同 hash，所以登入時必須用 matches 比對。
         if (!passwordEncoder.matches(request.getPassword(), member.getPassword())) {
-            throw new MemberAccountExcption("password", ResponseMessages.MEMBER_LOGIN_FAILED);
+            throw new MemberAccountExcption("password", ResponseMessages.MEMBER_LOGIN_FAILED); //MEMBER_LOGIN_FAILED:會員登入失敗
         }
 
         // 發 token 後把 hash 與過期時間存 MySQL，供 logout / rotation / token 檢查使用。
@@ -321,7 +321,7 @@ public class MemberService {
 
         // (1.2). 如果資料庫找不到token
         if (passwordResetToken.isEmpty()) {
-            throw new MemberAccountExcption("token", ResponseMessages.PASSWORD_RESET_TOKEN_INVALID);
+            throw new MemberAccountExcption("token", ResponseMessages.PASSWORD_RESET_TOKEN_INVALID); //PASSWORD_RESET_TOKEN_INVALID:重設密碼 token 不合法或已過期
         }
 
         // 有找到就繼續

@@ -30,7 +30,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     private static final Pattern MEMBER_ID_PATH_PATTERN = Pattern.compile("^/members/(\\d+)(/.*)?$");
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String REFRESH_TOKEN_HEADER = "X-Refresh-Token";
-    private static final Byte TOKEN_REVOKED = 1;
+    private static final Byte TOKEN_REVOKED = 1; //令牌已撤銷
 
     private final JwtService jwtService;
     private final AuthTokenRepository authTokenRepository;
@@ -106,7 +106,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         Long ownerId = Long.valueOf(claims.getSubject());
 
         if (!AuthOwnerTypes.MEMBER.equals(ownerType) || !"access".equals(tokenType)) {
-            throw new AuthException("token", ResponseMessages.TOKEN_INVALID);
+            throw new AuthException("token", ResponseMessages.TOKEN_INVALID); // AuthException:身分驗證異常
         }
 
         // 除了 JWT 本身有效，也要確認 MySQL 中這顆 token 沒被 logout 或 refresh rotation 撤銷。
@@ -165,7 +165,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         // refresh token rotation：舊 token 用過後立即撤銷，只能使用新 token。
         if (oldToken.getRefreshExpiresAt().isBefore(LocalDateTime.now())) {
             oldToken.setRevoked(TOKEN_REVOKED);
-            throw new AuthException("refreshToken", ResponseMessages.TOKEN_EXPIRED);
+            throw new AuthException("refreshToken", ResponseMessages.TOKEN_EXPIRED); //TOKEN_EXPIRED: token 已過期
         }
 
         oldToken.setRevoked(TOKEN_REVOKED);
