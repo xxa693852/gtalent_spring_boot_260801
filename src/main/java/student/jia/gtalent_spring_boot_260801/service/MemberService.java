@@ -221,7 +221,7 @@ public class MemberService {
                 refreshExpiresAt
         );
 
-        authTokenRepository.save(authToken);
+        authTokenRepository.save(authToken); //存進MySQL
         return new TokenResponse(accessToken, refreshToken, accessExpiresAt, refreshExpiresAt);
     }
 
