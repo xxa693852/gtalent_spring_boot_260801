@@ -1,6 +1,7 @@
 package student.jia.gtalent_spring_boot_260801.interceptor;
 
 
+
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -26,11 +27,13 @@ import student.jia.gtalent_spring_boot_260801.service.JwtService;
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
+    public static final String AUTH_MEMBER_ID_ATTRIBUTE = "authMemberId";
+
     // 目前先保護 /members/{id} 類型的 API，避免拿自己的 token 操作別人的會員資料。
     private static final Pattern MEMBER_ID_PATH_PATTERN = Pattern.compile("^/members/(\\d+)(/.*)?$");
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String REFRESH_TOKEN_HEADER = "X-Refresh-Token";
-    private static final Byte TOKEN_REVOKED = 1; //令牌已撤銷
+    private static final Byte TOKEN_REVOKED = 1;
 
     private final JwtService jwtService;
     private final AuthTokenRepository authTokenRepository;
@@ -57,6 +60,14 @@ public class AuthInterceptor implements HandlerInterceptor {
         try {
             // access token 有效就直接放行。
             Claims accessClaims = jwtService.parse(accessToken);
+            // Claims accessClaims = {
+            //     "sub": "3",
+            //     "ownerType": "MEMBER",
+            //     "tokenType": "access",
+            //     "iat": 1799397000,
+            //     "exp": 1799397900,
+            // }
+            Long ownerId = Long.valueOf(accessClaims.getSubject());
             try {
                 validateAccessToken(accessToken, accessClaims, request);
             } catch (AuthException exception) {
@@ -67,10 +78,12 @@ public class AuthInterceptor implements HandlerInterceptor {
                 // JWT exp 尚未觸發過期，但 DB access_expires_at 已過期時，也走自動 refresh。
                 refreshTokenAndSetHeaders(request, response, accessClaims);
             }
+            request.setAttribute(AUTH_MEMBER_ID_ATTRIBUTE, ownerId);
             return true;
         } catch (ExpiredJwtException exception) {
             // access token 過期時，改用 X-Refresh-Token 自動換新 token。
             refreshTokenAndSetHeaders(request, response, exception.getClaims());
+            request.setAttribute(AUTH_MEMBER_ID_ATTRIBUTE, Long.valueOf(exception.getClaims().getSubject()));
             return true;
         } catch (JwtException | IllegalArgumentException exception) {
             throw new AuthException("token", ResponseMessages.TOKEN_INVALID);
@@ -106,7 +119,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         Long ownerId = Long.valueOf(claims.getSubject());
 
         if (!AuthOwnerTypes.MEMBER.equals(ownerType) || !"access".equals(tokenType)) {
-            throw new AuthException("token", ResponseMessages.TOKEN_INVALID); // AuthException:身分驗證異常
+            throw new AuthException("token", ResponseMessages.TOKEN_INVALID);
         }
 
         // 除了 JWT 本身有效，也要確認 MySQL 中這顆 token 沒被 logout 或 refresh rotation 撤銷。
@@ -165,7 +178,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         // refresh token rotation：舊 token 用過後立即撤銷，只能使用新 token。
         if (oldToken.getRefreshExpiresAt().isBefore(LocalDateTime.now())) {
             oldToken.setRevoked(TOKEN_REVOKED);
-            throw new AuthException("refreshToken", ResponseMessages.TOKEN_EXPIRED); //TOKEN_EXPIRED: token 已過期
+            throw new AuthException("refreshToken", ResponseMessages.TOKEN_EXPIRED);
         }
 
         oldToken.setRevoked(TOKEN_REVOKED);
