@@ -1,0 +1,19 @@
+<form method="post"
+      action="https://ccore.newebpay.com/MPG/mpg_gateway">
+
+    <!-- 藍新商店代號 -->
+    <input type="hidden" name="MerchantID" value="你的 MerchantID">
+
+    <!-- API 版本 -->
+    <input type="hidden" name="Version" value="2.0">
+
+    <!-- AES 加密後的交易資料 -->
+    <input type="hidden" name="TradeInfo" value="16376fc0c98cc92b4772d4d148545d2bfe648e892231481ea1a20246aacd34b9aacb0fadaec56c3da1b00609d96dcf4e60e60b5145e46ab507b76e3797ff47975e5cc22cb0714a3525e12cdc185662c20e567c08fc3a44e5886b3f2d0a2fc311db60d5908df0104e94b58f39da4f0acc0f7f7639389ec36310a9241b88bdec2588da044936f49ba1b9cd8251d1ccd5ff4f3063a4dfafe6ea08737fce56222e7e02301047495342e0834033d0141175290184a5c06730ae273ba5b5002489479780f2814a864ba9339f6ce034b866be2bc08d8bb98a170fb8b183e28c287d55f0">
+
+    <!-- SHA256 驗證碼 -->
+    <input type="hidden" name="TradeSha" value="84E4D9F96537E029F8450BE1E759080F9AF6995921B7F6F9AAFDDD2C36E7B287">
+
+    <button type="submit">
+        前往藍新付款
+    </button>
+</form>

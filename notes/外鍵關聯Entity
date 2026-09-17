@@ -1,0 +1,39 @@
+@ManyToOne
+@JoinColumn(name = "member_id")
+private Member member;
+白話就是：
+Order 有一個 Member，而資料庫用 member_id 把它們連起來。
+
+屬性名稱 (name)：這是 JPA 定義好的標準參數名稱，用來告訴框架：「這個關聯對應到資料庫中的哪一個外鍵欄位（Foreign Key Column）」。
+
+是否為必填：name 其實是選填的。如果省略不寫（例如直接寫 @JoinColumn），
+JPA 會自動依照預設規則去推導欄位名稱（通常是「關聯物件屬性名稱_id」）。
+但在實際開發中，明確寫出 name = "..." 可以避免團隊或不同資料庫之間的命名誤會，是比較好的實務做法。
+
+
+
+反過來說的話
+Member 反過來：
+@OneToMany(mappedBy = "member")
+private List<Order> orders;
+白話就是：
+一個 Member 可以有很多 Order。
+
+mappedBy = "member"
+這個東西很重要。
+它是在說：
+這個關係真正的外鍵不是我這邊管理，而是 Order 裡面的 member 在管理。
+
+
+mappedBy 同樣是 @OneToMany（以及 @OneToOne）註解中的一個標準屬性（屬性名稱），屬於這個框架語法的一部份。
+以下是關於 mappedBy 的重點說明：
+
+它的作用是什麼？
+mappedBy 用來告訴 JPA：「這段雙向關聯中，我不是擁有外鍵（Foreign Key）的那一方，對方才是擁有者。」換句話說，它是在宣告「這個關聯已經由對面類別的某個屬性負責對應和維護了，我這裡只是被動的反向對應（Inverse Side）」。
+
+它的值（Value）要填什麼？
+必須填入對方類別（Target Entity）中，用來維護這個關聯的屬性名稱（即對面寫 @ManyToOne 的那個 Java 變數名稱，而不是資料庫欄位名稱）。
+例如在你的例子中，mappedBy = "member" 代表在另一端（通常是 Member 的對應類別，像是 Order 或 Post）有一個名為 member 的屬性，那邊才是真正透過 @JoinColumn 去控管資料庫外鍵的地方。
+
+如果漏掉會怎樣？
+如果在一對多（@OneToMany）的雙向關聯中漏掉 mappedBy，JPA 預設會把它當成是「單向關聯」或試圖去建立一個額外的關聯對應表（Join Table），這通常不是你想要的結果，也容易造成資料庫欄位重複或對應錯誤。因此，在雙向關聯的反向端，mappedBy 是不可或缺的語法。
