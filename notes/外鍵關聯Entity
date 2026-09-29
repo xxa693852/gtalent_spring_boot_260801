@@ -37,3 +37,45 @@ mappedBy 用來告訴 JPA：「這段雙向關聯中，我不是擁有外鍵（F
 
 如果漏掉會怎樣？
 如果在一對多（@OneToMany）的雙向關聯中漏掉 mappedBy，JPA 預設會把它當成是「單向關聯」或試圖去建立一個額外的關聯對應表（Join Table），這通常不是你想要的結果，也容易造成資料庫欄位重複或對應錯誤。因此，在雙向關聯的反向端，mappedBy 是不可或缺的語法。
+
+
+
+JOIN FETCH
+是 JPA/Hibernate (JPQL) 中用來在單一查詢中同時載入主實體與關聯實體的語法，能有效解決常見的 N+1 查詢效能問題。
+
+一次性抓取：在執行查詢時，直接把關聯的子實體或屬性抓取回來，不需等到存取時才觸發額外的延遲載入（Lazy Loading）查詢。減少查詢次數：避免迴圈或讀取清單時，對每一筆資料各自發送一次 SQL 查詢。
+
+
+
+
+參照(GPT 外鍵關聯學習整理)
+找到 Member 後，建立 Order
+
+接著：
+
+Order order = new Order();
+
+order.setTotal(request.getTotal());
+
+order.setMember(member);
+
+這一句：
+
+order.setMember(member);
+
+非常重要。
+
+它的意思不是：
+
+把 Member 的所有資料塞進 Order。
+
+而是：
+
+建立 Java Entity 之間的關聯。
+
+也就是：
+
+Order
+├── id
+├── total = 500
+└── member ─────→ Member 10
