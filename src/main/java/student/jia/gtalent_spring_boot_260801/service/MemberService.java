@@ -29,7 +29,7 @@ import student.jia.gtalent_spring_boot_260801.repository.MemberRepository;
 import student.jia.gtalent_spring_boot_260801.repository.PasswordResetTokenRepository;
 import student.jia.gtalent_spring_boot_260801.exception.MemberAccountExcption;
 import student.jia.gtalent_spring_boot_260801.exception.ResourceNotFoundException;
-
+// 測試自動化部屬
 @Service
 public class MemberService {
 
