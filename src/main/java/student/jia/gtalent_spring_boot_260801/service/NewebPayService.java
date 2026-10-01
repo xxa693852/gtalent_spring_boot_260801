@@ -287,7 +287,13 @@ public class NewebPayService {
                             // 單筆失敗保留 PENDING，下一次重整可重試；真正原因寫入 EC2 journal。
                             log.error("NewebPay query failed, merchantOrderNo={}, orderId={}",
                                     payment.getMerchantOrderNo(), order.getId(), exception);
-                            statuses.add("QUERY_ERROR");
+                            if (isNoTransactionDataError(exception)) {
+                                // 藍新查無交易代表付款流程沒有建立交易；超過 30 分鐘後直接取消並釋放書籍。
+                                cancelUncreatedPayment(payment, order);
+                                statuses.add(PaymentStatus.CANCELLED);
+                            } else {
+                                statuses.add("QUERY_ERROR");
+                            }
                         }
                     });
         }
@@ -379,6 +385,29 @@ public class NewebPayService {
     private boolean isFailedTradeStatus(String tradeStatus) {
         return "0".equals(tradeStatus) || "FAILED".equalsIgnoreCase(tradeStatus)
                 || "FAIL".equalsIgnoreCase(tradeStatus);
+    }
+
+    /** 判斷例外鏈中是否包含藍新「查無交易資料」訊息。 */
+    private boolean isNoTransactionDataError(Throwable exception) {
+        for (Throwable current = exception; current != null; current = current.getCause()) {
+            if (current.getMessage() != null && current.getMessage().contains("查無交易資料")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 超過 30 分鐘且藍新沒有交易紀錄時，取消付款及訂單。 */
+    private void cancelUncreatedPayment(Payment payment, BookOrder order) {
+        LocalDateTime cancelledAt = LocalDateTime.now();
+        payment.setPaymentStatus(PaymentStatus.CANCELLED);
+        payment.setReturnMessage("藍新查無交易資料，超過 30 分鐘自動取消");
+        order.setOrderStatus(OrderStatus.CANCELLED);
+        order.setCancelledAt(cancelledAt);
+        paymentRepository.save(payment);
+        bookOrderRepository.save(order);
+        log.info("Cancelled uncreated NewebPay payment, merchantOrderNo={}, orderId={}",
+                payment.getMerchantOrderNo(), order.getId());
     }
 
     private String sha256(String source) {
