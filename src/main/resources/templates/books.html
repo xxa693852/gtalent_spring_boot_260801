@@ -460,7 +460,27 @@
     });
 
     // 頁面載入完成後自動執行 loadBooks，取得第一頁書籍資料。
-    $(loadBooks);
+    // 每次進入／重整書籍頁時，先同步超過 30 分鐘仍在購買中的訂單。
+    function syncExpiredPendingOrders() {
+        const request = apiAjax({
+            url: "/payments/books/sync-expired-pending",
+            method: "POST"
+        });
+
+        if (!request) {
+            return;
+        }
+
+        request.always(function (_data, _textStatus, xhr) {
+            // 同步失敗不阻擋書籍清單，避免外部金流暫時不可用時整頁無法瀏覽。
+            if (xhr && xhr.getResponseHeader) {
+                saveNewTokens(xhr);
+            }
+            loadBooks();
+        });
+    }
+
+    $(syncExpiredPendingOrders);
 </script>
 </body>
 </html>

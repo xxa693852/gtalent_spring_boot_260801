@@ -2,6 +2,7 @@ package student.jia.gtalent_spring_boot_260801.controller;
 
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
@@ -11,7 +12,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.view.RedirectView;
-
+import java.util.List;
+import java.util.Map;
+import student.jia.gtalent_spring_boot_260801.request.OrderCheckRequest;
 import student.jia.gtalent_spring_boot_260801.constant.ResponseMessages;
 import student.jia.gtalent_spring_boot_260801.interceptor.AuthInterceptor;
 import student.jia.gtalent_spring_boot_260801.exception.AuthException;
@@ -73,8 +76,41 @@ public class PaymentController {
     public RedirectView returnFromNewebPay() {
         return new RedirectView("/page/books");
     }
+    // 檢查或主動查詢單筆訂單交易狀態 API
+    @PostMapping("/books/check-status")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<?> checkOrderStatus(
+            @RequestBody OrderCheckRequest request,
+            @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE, required = false) Long buyerMemberId) {
+        
+        if (buyerMemberId == null || request == null || request.getMerchantOrderNo() == null
+                || request.getMerchantOrderNo().isBlank()) {
+            throw new AuthException("token", ResponseMessages.TOKEN_INVALID);
+        }
+
+        // 呼叫 Service 進行藍新查詢與狀態更新
+        // 訂單歸屬與金額以資料庫資料為準，避免前端竄改查詢條件。
+        String resultStatus = newebPayService.queryAndSyncTradeStatus(
+                request.getMerchantOrderNo(), buyerMemberId);
+
+        return ResponseEntity.ok().body(Map.of("success", true, "tradeStatus", resultStatus));
+    }
+
+    /**
+     * 書籍頁重整時呼叫。只查詢此使用者超過 30 分鐘仍為購買中的訂單，
+     * 因此未滿 30 分鐘時不會呼叫藍新 API。
+     */
+    @PostMapping("/books/sync-expired-pending")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<?> syncExpiredPendingOrders(
+            @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE, required = false) Long buyerMemberId) {
+        if (buyerMemberId == null) {
+            throw new AuthException("token", ResponseMessages.TOKEN_INVALID);
+        }
+
+        List<String> statuses = newebPayService.syncExpiredPendingTrades(buyerMemberId);
+        return ResponseEntity.ok(Map.of("success", true, "tradeStatuses", statuses));
+    }
 
 
-
-    
 }

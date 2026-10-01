@@ -1,5 +1,8 @@
 package student.jia.gtalent_spring_boot_260801.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,4 +25,11 @@ public interface BookOrderRepository extends JpaRepository<BookOrder, Long> {
         nativeQuery = true
     )
     long countByOrderNo(@Param("orderNo") String orderNo);
+
+    /** 找出已超過指定時間、仍在購買中的訂單。 */
+    List<BookOrder> findByBuyerMemberIdAndOrderStatusAndCreatedAtLessThanEqual(
+        Long buyerMemberId,
+        String orderStatus,
+        LocalDateTime createdAt
+    );
 }
