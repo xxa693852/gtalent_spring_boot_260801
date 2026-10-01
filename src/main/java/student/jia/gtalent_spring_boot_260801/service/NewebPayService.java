@@ -66,7 +66,8 @@ public class NewebPayService {
     private final String queryUrl;
     private final String notifyUrl;
     private final String returnUrl;
-    private final ObjectMapper objectMapper;
+    // QueryTradeInfo 回傳 JSON；這個 parser 不依賴 Spring Boot 4 的 Jackson 3 bean。
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
@@ -82,10 +83,11 @@ public class NewebPayService {
             @Value("${newebpay.hash-iv}") String hashIv,
             @Value("${newebpay.version}") String version,
             @Value("${newebpay.gateway-url}") String gatewayUrl,
-            @Value("${newebpay.query-url}") String queryUrl,
+            // CI 或舊環境尚未補上 application.properties 時，先使用藍新測試查詢網址。
+            // 正式環境仍建議以 NEWEBPAY_QUERY_URL 指定 core.newebpay.com。
+            @Value("${newebpay.query-url:https://ccore.newebpay.com/API/QueryTradeInfo}") String queryUrl,
             @Value("${newebpay.notify-url}") String notifyUrl,
-            @Value("${newebpay.return-url}") String returnUrl,
-            ObjectMapper objectMapper) {
+            @Value("${newebpay.return-url}") String returnUrl) {
         this.paymentRepository = paymentRepository;
         this.bookOrderRepository = bookOrderRepository;
         this.bookRepository = bookRepository;
@@ -98,7 +100,6 @@ public class NewebPayService {
         this.queryUrl = queryUrl;
         this.notifyUrl = notifyUrl;
         this.returnUrl = returnUrl;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional
