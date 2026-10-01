@@ -27,6 +27,8 @@ import java.util.Objects;
 import javax.crypto.Cipher;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +55,9 @@ import student.jia.gtalent_spring_boot_260801.repository.PaymentNotificationRepo
 
 @Service
 public class NewebPayService {
+
+    /** 查詢失敗的真正原因會寫到 EC2 journal，避免前端只看到 QUERY_ERROR。 */
+    private static final Logger log = LoggerFactory.getLogger(NewebPayService.class);
 
     private final PaymentRepository paymentRepository;
     private final BookOrderRepository bookOrderRepository;
@@ -279,6 +284,9 @@ public class NewebPayService {
                             statuses.add(queryAndSyncPayment(payment, order));
                         } catch (RuntimeException exception) {
                             // 單筆藍新暫時失敗不影響其他訂單；該筆保留 PENDING，下次重整再查。
+                            // 單筆失敗保留 PENDING，下一次重整可重試；真正原因寫入 EC2 journal。
+                            log.error("NewebPay query failed, merchantOrderNo={}, orderId={}",
+                                    payment.getMerchantOrderNo(), order.getId(), exception);
                             statuses.add("QUERY_ERROR");
                         }
                     });
@@ -321,7 +329,8 @@ public class NewebPayService {
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("NewebPay query HTTP status: " + response.statusCode());
+                throw new IllegalStateException("NewebPay query HTTP status: " + response.statusCode()
+                        + ", body=" + response.body());
             }
 
             Map<String, Object> body = objectMapper.readValue(response.body(), new TypeReference<>() {});
@@ -358,7 +367,7 @@ public class NewebPayService {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("NewebPay query was interrupted", exception);
         } catch (Exception exception) {
-            throw new IllegalStateException("NewebPay query failed", exception);
+            throw new IllegalStateException("NewebPay query failed: " + exception.getMessage(), exception);
         }
     }
 
