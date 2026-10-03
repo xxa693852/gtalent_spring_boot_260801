@@ -67,6 +67,8 @@ jobs:
           NEWEBPAY_GATEWAY_URL: https://ccore.newebpay.com/MPG/mpg_gateway
           NEWEBPAY_NOTIFY_URL: http://localhost:8080/payments/newebpay/notify
           NEWEBPAY_RETURN_URL: http://localhost:8080/payments/newebpay/return
+          LINE_CHANNEL_ACCESS_TOKEN: ci-only-line-channel-access-token
+          LINE_CHANNEL_SECRET: ci-only-line-channel-secret
         run: |
           chmod +x mvnw
           ./mvnw --batch-mode --no-transfer-progress clean package
