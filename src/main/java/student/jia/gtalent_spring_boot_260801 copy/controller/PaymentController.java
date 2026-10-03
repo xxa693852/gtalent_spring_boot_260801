@@ -1,0 +1,116 @@
+package student.jia.gtalent_spring_boot_260801.controller;
+
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.view.RedirectView;
+import java.util.List;
+import java.util.Map;
+import student.jia.gtalent_spring_boot_260801.request.OrderCheckRequest;
+import student.jia.gtalent_spring_boot_260801.constant.ResponseMessages;
+import student.jia.gtalent_spring_boot_260801.interceptor.AuthInterceptor;
+import student.jia.gtalent_spring_boot_260801.exception.AuthException;
+import student.jia.gtalent_spring_boot_260801.exception.ResourceNotFoundException;
+import student.jia.gtalent_spring_boot_260801.service.BookOrderService;
+import student.jia.gtalent_spring_boot_260801.service.NewebPayService;
+import student.jia.gtalent_spring_boot_260801.response.BookOrderCreateResponse;
+import student.jia.gtalent_spring_boot_260801.response.NewebPayPaymentFormResponse;
+
+
+@RestController
+@RequestMapping("/payments")
+public class PaymentController {
+    private final BookOrderService bookOrderService;
+    private final NewebPayService newebPayService;
+
+    public PaymentController(BookOrderService bookOrderService, NewebPayService newebPayService) {
+        this.bookOrderService = bookOrderService;
+        this.newebPayService = newebPayService;
+    }
+
+    // 一段式建立藍新付款表單。
+    // 前端按「購買」後可以直接呼叫這支 API：
+    // 1. AuthInterceptor 先從 JWT 取出 buyerMemberId 並放進 request attribute。
+    // 2. 這裡建立 book_orders 與 payments。
+    // 3. 再立刻用新建立的 paymentId 產生藍新 MPG 表單資料。
+    @PostMapping("books/{bookId}/newebpay/form")
+    @ResponseStatus(HttpStatus.OK)
+    public NewebPayPaymentFormResponse createBookOrderAndNewebPayForm(
+            @PathVariable Long bookId,                           
+            @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE, required = false) Long buyerMemberId) {
+        if (buyerMemberId == null) {
+            throw new AuthException("token", ResponseMessages.TOKEN_INVALID);
+        }
+
+        if (bookId == null || bookId < 1) {
+            throw new ResourceNotFoundException("book", ResponseMessages.BOOK_NOT_FOUND);
+        }
+
+        BookOrderCreateResponse order = bookOrderService.createBookOrder(bookId, buyerMemberId);
+
+        return newebPayService.createPaymentForm(order.getPaymentId());
+    }
+
+
+    // 藍新 NotifyURL：付款結果的後端背景通知。
+    // 這支不能要求會員 JWT，因為呼叫方是藍新伺服器，不是前端使用者。
+    // service 會先保存原始通知，再驗證 TradeSha、解密 TradeInfo，最後更新付款與訂單狀態。
+    @PostMapping("/newebpay/notify")
+    @ResponseStatus(HttpStatus.OK)
+    public String notifyNewebPay(@RequestBody String rowBody) {
+       return newebPayService.handleNotify(rowBody);
+    }
+
+    // 藍新 ReturnURL：付款完成後，使用者瀏覽器被導回的入口。
+    // 這裡只負責把使用者導回書籍列表，不更新付款成功狀態；
+    // 正式付款結果以 NotifyURL 或交易查詢 API 為準。
+    @RequestMapping(value = "/newebpay/return", method = {RequestMethod.GET, RequestMethod.POST})
+    public RedirectView returnFromNewebPay() {
+        return new RedirectView("/page/books");
+    }
+    // 檢查或主動查詢單筆訂單交易狀態 API
+    @PostMapping("/books/check-status")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<?> checkOrderStatus(
+            @RequestBody OrderCheckRequest request,
+            @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE, required = false) Long buyerMemberId) {
+        
+        if (buyerMemberId == null || request == null || request.getMerchantOrderNo() == null
+                || request.getMerchantOrderNo().isBlank()) {
+            throw new AuthException("token", ResponseMessages.TOKEN_INVALID);
+        }
+
+        // 呼叫 Service 進行藍新查詢與狀態更新
+        // 訂單歸屬與金額以資料庫資料為準，避免前端竄改查詢條件。
+        String resultStatus = newebPayService.queryAndSyncTradeStatus(
+                request.getMerchantOrderNo(), buyerMemberId);
+
+        return ResponseEntity.ok().body(Map.of("success", true, "tradeStatus", resultStatus));
+    }
+
+    /**
+     * 書籍頁重整時呼叫。只查詢此使用者超過 30 分鐘仍為購買中的訂單，
+     * 因此未滿 30 分鐘時不會呼叫藍新 API。
+     */
+    @PostMapping("/books/sync-expired-pending")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<?> syncExpiredPendingOrders(
+            @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE, required = false) Long buyerMemberId) {
+        if (buyerMemberId == null) {
+            throw new AuthException("token", ResponseMessages.TOKEN_INVALID);
+        }
+
+        List<String> statuses = newebPayService.syncExpiredPendingTrades(buyerMemberId);
+        return ResponseEntity.ok(Map.of("success", true, "tradeStatuses", statuses));
+    }
+
+
+}
