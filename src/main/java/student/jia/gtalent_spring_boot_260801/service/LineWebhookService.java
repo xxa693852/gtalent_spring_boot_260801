@@ -6,6 +6,7 @@ import com.linecorp.bot.webhook.model.Event;
 import com.linecorp.bot.webhook.model.MessageContent;
 import com.linecorp.bot.webhook.model.MessageEvent;
 import com.linecorp.bot.webhook.model.TextMessageContent;
+import com.linecorp.bot.webhook.model.UnsendEvent;
 
 @Service
 public class LineWebhookService {
@@ -17,9 +18,15 @@ public class LineWebhookService {
     }
 
     public void handleEvent(Event event) {
+        //有人傳訊息
         if (event instanceof MessageEvent messageEvent) {
             handleMessageEvent(messageEvent);
         }
+        //有人收回訊息
+        if(event instanceof UnsendEvent unsendEvent){
+           handleUnsendEvent(unsendEvent);
+        }
+
     }
 
     private void handleMessageEvent(MessageEvent event) {
@@ -31,5 +38,9 @@ public class LineWebhookService {
             System.out.println("LINE webhook text message from " + lineUserId + ": " + text);
             lineReplyService.replyText(event.replyToken(), "收到：" + text);
         }
+    }
+
+    public  void  handleUnsendEvent(UnsendEvent event){
+        System.out.println("有人收回了訊息!");
     }
 }
