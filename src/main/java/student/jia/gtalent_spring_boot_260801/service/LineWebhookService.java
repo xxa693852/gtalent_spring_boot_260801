@@ -8,6 +8,11 @@ import com.linecorp.bot.webhook.model.MessageEvent;
 import com.linecorp.bot.webhook.model.TextMessageContent;
 import com.linecorp.bot.webhook.model.UnsendEvent;
 
+import com.linecorp.bot.webhook.model.GroupSource;
+import com.linecorp.bot.webhook.model.RoomSource;
+import com.linecorp.bot.webhook.model.UserSource;
+
+
 @Service
 public class LineWebhookService {
 
@@ -42,7 +47,32 @@ public class LineWebhookService {
         }
     }
 
-    public  void  handleUnsendEvent(UnsendEvent event){
-        System.out.println("有人收回了訊息!");
-    }
+    private void handleUnsendEvent(UnsendEvent event) {
+      String messageId = event.unsend().messageId();
+
+      System.out.println("有人收回訊息，messageId=" + messageId);
+
+      if (event.source() instanceof GroupSource groupSource) {
+          lineReplyService.pushText(
+                  groupSource.groupId(),
+                  "有人收回了一則訊息"
+          );
+          return;
+      }
+
+      if (event.source() instanceof RoomSource roomSource) {
+          lineReplyService.pushText(
+                  roomSource.roomId(),
+                  "有人收回了一則訊息"
+          );
+          return;
+      }
+
+      if (event.source() instanceof UserSource userSource) {
+          lineReplyService.pushText(
+                  userSource.userId(),
+                  "你收回了一則訊息"
+          );
+      }
+  }
 }

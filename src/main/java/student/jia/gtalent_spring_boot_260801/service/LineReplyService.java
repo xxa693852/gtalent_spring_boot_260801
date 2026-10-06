@@ -10,6 +10,8 @@ import com.linecorp.bot.messaging.model.ReplyMessageRequest;
 import com.linecorp.bot.messaging.model.TextMessage;
 
 import student.jia.gtalent_spring_boot_260801.exception.ApiException;
+import java.util.UUID;
+import com.linecorp.bot.messaging.model.PushMessageRequest;
 
 @Service
 public class LineReplyService {
@@ -34,5 +36,21 @@ public class LineReplyService {
         } catch (ExecutionException exception) {
             throw new ApiException("line", "LINE 回覆失敗");
         }
+    }
+    public  void pushText(String targetId, String message){
+        PushMessageRequest request = new PushMessageRequest(
+                    targetId,
+                    List.of(new TextMessage(message)),
+                     false,
+                      List.of()
+                    );
+                    try {
+          messagingApiClient.pushMessage(UUID.randomUUID(), request).get();
+      } catch (InterruptedException exception) {
+          Thread.currentThread().interrupt();
+          throw new ApiException("line", "LINE 主動推播被中斷");
+      } catch (ExecutionException exception) {
+          throw new ApiException("line", "LINE 主動推播失敗");
+      }
     }
 }
