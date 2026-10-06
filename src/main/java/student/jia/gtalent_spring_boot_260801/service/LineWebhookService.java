@@ -18,6 +18,8 @@ public class LineWebhookService {
     }
 
     public void handleEvent(Event event) {
+
+        System.out.println("收到 Event 類型：" + event.getClass().getSimpleName());
         //有人傳訊息
         if (event instanceof MessageEvent messageEvent) {
             handleMessageEvent(messageEvent);
