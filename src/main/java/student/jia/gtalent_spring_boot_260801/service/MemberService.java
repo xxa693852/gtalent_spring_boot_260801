@@ -374,5 +374,28 @@ public class MemberService {
         SECURE_RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
+    public  Optional<Member> findByLineUid(String lindUid){
+        return repository.findOneByLineUidAndStatus(lindUid);
+    }
+  @Transactional
+  public void bindLineUid(Long memberId, String lineUid) {
+      Member member = repository.findOneById(memberId)
+              .orElseThrow(() -> new ResourceNotFoundException(
+                      "member",
+                      ResponseMessages.MEMBER_NOT_FOUND
+              ));
 
+      Optional<Member> existingMember =
+              repository.findOneByLineUidAndStatus(lineUid);
+
+      if (existingMember.isPresent()
+              && !existingMember.get().getId().equals(memberId)) {
+          throw new MemberAccountExcption(
+                  "lineUid",
+                  ResponseMessages.TOKEN_INVALID
+          );
+      }
+
+      member.setLineUid(lineUid);
+}
 }

@@ -53,6 +53,9 @@ public class Member {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "line_uid", length = 64, unique = true)
+    private String lineUid;
+
     protected Member() {
     }
 

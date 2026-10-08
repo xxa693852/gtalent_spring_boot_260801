@@ -119,9 +119,33 @@
                liff.login({ redirectUri: window.location.href });
                return;
            }
+            const idToken = liff.getIDToken();
+            const accessToken = localStorage.getItem("accessToken");
 
+            if (!accessToken) {
+                showError("請先登入網站會員");
+                return;
+            }
 
-           const profile = await liff.getProfile();
+            if (!idToken) {
+                showError("無法取得 LINE ID token");
+                return;
+            }
+
+            const response = await fetch("/members/line/bind", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({ idToken })
+            });
+
+            if (!response.ok) {
+                throw new Error("LINE 帳號綁定失敗");
+            }
+
+            const profile = await liff.getProfile();
            document.getElementById("displayName").textContent = profile.displayName || "—";
            document.getElementById("userId").textContent = profile.userId || "—";
            document.getElementById("statusMessage").textContent = profile.statusMessage || "—";

@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,6 +20,7 @@ import student.jia.gtalent_spring_boot_260801.request.MemberForgotPasswordReques
 import student.jia.gtalent_spring_boot_260801.request.MemberPasswordResetRequest;
 import student.jia.gtalent_spring_boot_260801.request.MemberRegisterRequest;
 import student.jia.gtalent_spring_boot_260801.response.ApiResponse;
+import student.jia.gtalent_spring_boot_260801.request.LineBindRequest;
 
 import student.jia.gtalent_spring_boot_260801.response.MemberResponse;
 import student.jia.gtalent_spring_boot_260801.response.PageResponse;
@@ -30,6 +32,13 @@ import student.jia.gtalent_spring_boot_260801.request.MemberLoginRequest;
 
 import student.jia.gtalent_spring_boot_260801.request.TokenLogoutRequest;
 
+import student.jia.gtalent_spring_boot_260801.entity.Member;
+import student.jia.gtalent_spring_boot_260801.exception.ResourceNotFoundException;
+import student.jia.gtalent_spring_boot_260801.constant.ResponseMessages;
+
+
+import student.jia.gtalent_spring_boot_260801.interceptor.AuthInterceptor;
+import student.jia.gtalent_spring_boot_260801.service.LineAuthService;
 
 
 @RestController //這個 Class 是一個 Web API 控制器；告訴 Spring 這個類別專門用來接收 HTTP 請求（如 GET、POST），並且直接把執行的結果「轉換成資料（如 JSON 或 XML）」傳回給前端，而不是去渲染 HTML 網頁
@@ -37,11 +46,11 @@ import student.jia.gtalent_spring_boot_260801.request.TokenLogoutRequest;
 public class MemberController {
 
     private final MemberService memberService;
-
-    public MemberController(MemberService memberService,MemberRepository repository) {
-        this.memberService = memberService;
-
-    }
+    private final LineAuthService lineAuthService;
+  public MemberController(MemberService memberService, LineAuthService lineAuthService) {
+      this.memberService = memberService;
+      this.lineAuthService = lineAuthService;
+  }
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK) // 指定此 API 成功回應的 HTTP 狀態碼為 200 OK
@@ -135,4 +144,33 @@ public class MemberController {
         return new ApiResponse("密碼重設成功，請重新登入");
     }
 
+    @GetMapping("/line")
+    public MemberResponse getOneByLineUid(
+          @RequestParam String lineUid) {
+
+      Member member = memberService.findByLineUid(lineUid)
+              .orElseThrow(() ->
+                      new ResourceNotFoundException(
+                              "member",
+                              ResponseMessages.MEMBER_NOT_FOUND
+                      )
+              );
+
+      return new MemberResponse(member);
+  }
+  @PostMapping("/line/bind")
+  @ResponseStatus(HttpStatus.OK)
+  public ApiResponse bindLine(
+          @RequestAttribute(
+                  name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE
+          ) Long memberId,
+          @Valid @RequestBody LineBindRequest request) {
+
+      String lineUid =
+              lineAuthService.verifyIdToken(request.getIdToken());
+
+      memberService.bindLineUid(memberId, lineUid);
+
+      return new ApiResponse("LINE 帳號綁定成功");
+  }
 }

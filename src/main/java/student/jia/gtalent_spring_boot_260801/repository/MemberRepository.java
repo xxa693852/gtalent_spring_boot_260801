@@ -2,7 +2,7 @@ package student.jia.gtalent_spring_boot_260801.repository;
 
 import java.util.Optional;
 
-
+import org.antlr.v4.runtime.atn.SemanticContext.AND;
 import org.springframework.data.jpa.repository.JpaRepository; // JpaRepository 已經內建了 List<Member> findAll();
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -54,5 +54,12 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     )
     public Optional<Member> findOneByAccountOrEmailAndStatus(
             @Param("accountOrEmail") String accountOrEmail
+    );
+
+    @Query(
+        value ="SELECT * FROM members WHERE line_uid = :lineUid AND status = 1",nativeQuery  = true
+    )
+    Optional<Member> findOneByLineUidAndStatus(
+        @Param("lineUid") String lineUid
     );
 }
