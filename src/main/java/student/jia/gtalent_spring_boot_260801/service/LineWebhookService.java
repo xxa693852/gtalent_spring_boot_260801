@@ -41,12 +41,18 @@ public class LineWebhookService {
 
         if (message instanceof TextMessageContent textMessage) {
             String lineUserId = event.source().userId();
-            String text = textMessage.text();
+            String text = textMessage.text().trim();
             System.out.println("LINE webhook text message from " + lineUserId + ": " + text);
-            lineReplyService.replyText(event.replyToken(), "收到：" + text);
+
+            String reply = switch (text.toLowerCase()) {
+                case "ping" -> "pong";
+                case "你好" -> "你好！我是群組機器人。";
+                default -> "收到：" + text;
+            };
+
+            lineReplyService.replyText(event.replyToken(), reply);
         }
     }
-
     private void handleUnsendEvent(UnsendEvent event) {
       String messageId = event.unsend().messageId();
 

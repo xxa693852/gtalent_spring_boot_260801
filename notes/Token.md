@@ -233,4 +233,4 @@ Q：為什麼 JWT 明明還沒過期，登出後卻不能使用？
 
 因為 JWT 的有效期限只是判斷 Token 本身是否過期，登出時後端會把對應的 AuthToken 標記為 revoked，之後 AuthInterceptor 驗證 Token 時除了確認 JWT 本身合法，也會透過 AuthTokenRepository 查詢 DB 的 Token 狀態，因此即使 JWT 尚未過期，只要 revoked = true，就會拒絕請求。
 這個答案已經很完整了。
-123
+
