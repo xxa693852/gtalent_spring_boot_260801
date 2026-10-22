@@ -1,7 +1,7 @@
 package student.jia.gtalent_spring_boot_260801.repository;
 
 import java.util.Optional;
-
+import java.util.List;
 import org.antlr.v4.runtime.atn.SemanticContext.AND;
 import org.springframework.data.jpa.repository.JpaRepository; // JpaRepository 已經內建了 List<Member> findAll();
 import org.springframework.data.jpa.repository.Query;
@@ -47,6 +47,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     );
 
     
+
+    
     // 會員忘記密碼用 account or email 查詢，status = 1 才能登入。
     @Query(
             value = "SELECT * FROM members WHERE (account = :accountOrEmail OR email = :accountOrEmail) AND status = 1",
@@ -62,4 +64,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     Optional<Member> findOneByLineUidAndStatus(
         @Param("lineUid") String lineUid
     );
+
+
+      List<Member> findByAccountIn(List<String> accounts);
+      
 }
+
