@@ -62,7 +62,7 @@ public class MemberService {
         this.appBaseUrl = appBaseUrl;
         this.passwordResetTokenMinutes = passwordResetTokenMinutes;
     }
-
+    //單一會員查詢
     public Member findOneById(Long id) {
         // 1. 給repository找
         Optional<Member> member = this.repository.findOneById(id);
@@ -78,7 +78,7 @@ public class MemberService {
         return member.get();
 
     }
-
+    //創立會員
     @Transactional
     public Member register(MemberRegisterRequest request) {
         // 比對傳入的密碼跟確認密碼
@@ -113,7 +113,7 @@ public class MemberService {
         }
 
     }
-
+    //修改密碼
     @Transactional
     public void updatePassword(Long id, MemberPasswordUpdateRequest request) {
         // 比對傳入的密碼跟確認密碼
@@ -135,7 +135,7 @@ public class MemberService {
         Member targetMember = member.get();
         targetMember.setPassword(this.passwordEncoder.encode(request.getPassword()));
     }
-
+    //修改會員資料
     @Transactional
     public void updateProfile(Long id, MemberProfileUpdateRequest request)
     {
@@ -168,7 +168,7 @@ public class MemberService {
         }
 
     }
-
+    //刪除會員
     @Transactional
     public void delete(long id) {
         // 1. 給repository找
