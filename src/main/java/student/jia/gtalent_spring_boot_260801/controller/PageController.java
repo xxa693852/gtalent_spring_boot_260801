@@ -2,11 +2,12 @@ package student.jia.gtalent_spring_boot_260801.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import student.jia.gtalent_spring_boot_260801.service.MemberService;
-import org.springframework.beans.factory.annotation.Value;
+
 @Controller
 public class PageController {
 
@@ -24,11 +25,6 @@ public class PageController {
         return "login";
     }
 
-    @GetMapping("/page/register")
-    public String registerPage() {
-        return "register";
-    }
-
     @GetMapping("/page/books")
     public String booksPage() {
         return "books";
@@ -39,7 +35,6 @@ public class PageController {
         model.addAttribute("liffId", liffId);
         return "liff-profile";
     }
-
 
     @GetMapping("/page/forgot-password")
     public String forgotPasswordPage() {
@@ -53,5 +48,21 @@ public class PageController {
         model.addAttribute("tokenValid", memberService.isPasswordResetTokenValid(token));
         return "reset-password";
     }
+
+    @GetMapping("/page/demo/polling")
+    public String pollingPage() {
+        return "polling";
+    }
+
+    @GetMapping("/page/demo/sse")
+    public String ssePage() {
+        return "sse";
+    }
+
+    @GetMapping("/page/demo/websocket")
+    public String websocketPage() {
+        return "websocket";
+    }
+    
     
 }

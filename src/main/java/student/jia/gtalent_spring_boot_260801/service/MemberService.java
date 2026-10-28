@@ -225,6 +225,7 @@ public class MemberService {
         return new TokenResponse(accessToken, refreshToken, accessExpiresAt, refreshExpiresAt);
     }
 
+    //會員登出
     @Transactional
     public void logout(String refreshToken) {
         // logout 採用軟撤銷，讓同一顆 refresh token 之後不能再換 token。
