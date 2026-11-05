@@ -29,3 +29,8 @@
 - 檔案：`QuestionDialogueRecord.md`、`AGENT.md`
 - 內容：建立使用者問題與回覆摘要紀錄檔，並新增每次提問都要同步記錄的規則。
 - 驗證：確認兩個文件已更新；未執行建置或測試，因本次僅新增與更新文件。
+
+### 2026-11-03
+- 檔案：src/main/java/student/jia/gtalent_spring_boot_260801/deploy.yml、QuestionDialogueRecord.md、AGENT.md
+- 內容：修正部署檔四處 SSH/SCP 連線變數及三處 JAR 備份、啟用與回復指令。
+- 驗證：核對七處字串替換；未執行部署或建置。
