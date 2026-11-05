@@ -2,38 +2,31 @@ package student.jia.gtalent_spring_boot_260801.service;
 
 import org.springframework.stereotype.Service;
 
+import org.springframework.stereotype.Service;
+import org.springframework.ai.chat.client.ChatClient;
+import com.linecorp.bot.webhook.model.MessageEvent;
 import com.linecorp.bot.webhook.model.Event;
 import com.linecorp.bot.webhook.model.MessageContent;
-import com.linecorp.bot.webhook.model.MessageEvent;
 import com.linecorp.bot.webhook.model.TextMessageContent;
-import com.linecorp.bot.webhook.model.UnsendEvent;
 
-import com.linecorp.bot.webhook.model.GroupSource;
-import com.linecorp.bot.webhook.model.RoomSource;
-import com.linecorp.bot.webhook.model.UserSource;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-
-@Service
+@Service 
 public class LineWebhookService {
 
     private final LineReplyService lineReplyService;
+    private final ChatClient chatClient;
 
-    public LineWebhookService(LineReplyService lineReplyService) {
+    public LineWebhookService(LineReplyService lineReplyService, ChatClient.Builder builder) {
         this.lineReplyService = lineReplyService;
+        this.chatClient = builder.build();
     }
 
     public void handleEvent(Event event) {
-
-        System.out.println("收到 Event 類型：" + event.getClass().getSimpleName());
-        //有人傳訊息
         if (event instanceof MessageEvent messageEvent) {
             handleMessageEvent(messageEvent);
         }
-        //有人收回訊息
-        if(event instanceof UnsendEvent unsendEvent){
-           handleUnsendEvent(unsendEvent);
-        }
-
     }
 
     private void handleMessageEvent(MessageEvent event) {
@@ -44,41 +37,26 @@ public class LineWebhookService {
             String text = textMessage.text().trim();
             System.out.println("LINE webhook text message from " + lineUserId + ": " + text);
 
-            String reply = switch (text.toLowerCase()) {
-                case "ping" -> "pong";
-                case "你好" -> "你好！我是群組機器人。";
-                default -> "收到：" + text;
-            };
+            String answer = "";
+            try {
+                answer = chatClient.prompt()
+                    .user(text)
+                    .call()
+                    .content();
+            } catch (RuntimeException exception) {
+                // 暫時輸出完整例外，排查 Gemini API 呼叫失敗的原因。
+                exception.printStackTrace();
+                throw exception;
+            }
 
-            lineReplyService.replyText(event.replyToken(), reply);
+            System.out.println("gemini-answer:" + answer);
+            // String reply = switch (text.toLowerCase()) {
+            //     case "ping" -> "pong";
+            //     case "你好" -> "你好！我是群組機器人。";
+            //     default -> "收到：" + text;
+            // };
+
+            lineReplyService.replyText(event.replyToken(), answer);
         }
     }
-    private void handleUnsendEvent(UnsendEvent event) {
-      String messageId = event.unsend().messageId();
-
-      System.out.println("有人收回訊息，messageId=" + messageId);
-
-      if (event.source() instanceof GroupSource groupSource) {
-          lineReplyService.pushText(
-                  groupSource.groupId(),
-                  "有人收回了一則訊息"
-          );
-          return;
-      }
-
-      if (event.source() instanceof RoomSource roomSource) {
-          lineReplyService.pushText(
-                  roomSource.roomId(),
-                  "有人收回了一則訊息"
-          );
-          return;
-      }
-
-      if (event.source() instanceof UserSource userSource) {
-          lineReplyService.pushText(
-                  userSource.userId(),
-                  "你收回了一則訊息"
-          );
-      }
-  }
 }
