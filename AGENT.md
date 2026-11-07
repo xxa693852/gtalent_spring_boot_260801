@@ -34,3 +34,16 @@
 - 檔案：src/main/java/student/jia/gtalent_spring_boot_260801/deploy.yml、QuestionDialogueRecord.md、AGENT.md
 - 內容：修正部署檔四處 SSH/SCP 連線變數及三處 JAR 備份、啟用與回復指令。
 - 驗證：核對七處字串替換；未執行部署或建置。
+
+### 2026-11-07
+- 檔案：src/main/java/student/jia/gtalent_spring_boot_260801/controller/PythonController.java、QuestionDialogueRecord.md、AGENT.md
+- 內容：補齊 GET /calculate，使用 py 執行專案外 D:/Java26/python/calculate.py，傳入 10 與 20，讀取輸出並檢查退出碼，以 application/json 回傳結果。
+- 驗證：mvnw.cmd -q -DskipTests compile 成功。使用者已確認腳本輸出 sum=30、multiply=200。尚未啟動完整 Spring Boot 驗證 HTTP。
+### 2026-11-07
+- 檔案：src/main/java/student/jia/gtalent_spring_boot_260801/controller/PythonController.java、QuestionDialogueRecord.md、AGENT.md
+- 內容：依使用者要求，將兩個 @Value 的預設腳本路徑改為 D:/Java26/python/calculate.py 與 D:/Java26/python/call python.py。
+- 驗證：確認 application.properties 已設定相同腳本路徑與 python.executable=py。僅修改預設字串，未重新編譯或測試人臉辨識 API。
+### 2026-11-07
+- 檔案／環境：QuestionDialogueRecord.md、AGENT.md；py 使用的 Python 3.14 環境。
+- 內容：修正人臉辨識腳本缺少 cv2，安裝 opencv-python 與 numpy。初次安裝的 OpenCV 5.0 缺少 CascadeClassifier，改裝 opencv-python<5，最終版本 4.14.0.94。
+- 驗證：cv2 載入成功，人臉模型載入成功。以 Downloads/1.jpg 測試 POST /api/python/face-detect，HTTP 200，回傳 faceCount=0、faces=[]。
