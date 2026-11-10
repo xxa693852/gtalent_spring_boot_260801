@@ -310,7 +310,7 @@ public class MemberService {
         // 寄信失敗時 MailService 會丟 MailException，GlobalExceptionHandler 會轉成統一 API 錯誤回應。
         mailService.sendEmail(targetMember.getEmail(), "重設會員密碼", content);
     }
-
+    //重設密碼
     @Transactional
     public void resetPassword(MemberPasswordResetRequest request) {
         // 1. 檢查token
@@ -361,7 +361,7 @@ public class MemberService {
                 .isPresent();
     }
     
-
+    //規範化電子郵件
     private String normalizeEmail(String email) {
         if (email == null || email.isBlank()) {
             return null;
@@ -369,7 +369,7 @@ public class MemberService {
 
         return email.trim();
     }
-
+    // 產生密碼重設令牌
     private String generatePasswordResetToken() {
         byte[] bytes = new byte[32];
         SECURE_RANDOM.nextBytes(bytes);
@@ -378,6 +378,7 @@ public class MemberService {
     public  Optional<Member> findByLineUid(String lindUid){
         return repository.findOneByLineUidAndStatus(lindUid);
     }
+    // Line綁定
   @Transactional
   public void bindLineUid(Long memberId, String lineUid) {
       Member member = repository.findOneById(memberId)
